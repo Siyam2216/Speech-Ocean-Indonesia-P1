@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Speech Ocean · Work Tracker</title>
+<title>Speech Ocean · Work Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,53 +25,83 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-u
 .brand span{font-size:13px;opacity:.82}
 .demo{margin-left:auto;font-size:11px;font-weight:600;background:rgba(255,255,255,.18);padding:3px 9px;border-radius:99px}
 main{max-width:560px;margin:-48px auto 24px;padding:0 16px;display:grid;gap:14px;position:relative}
+.stack{display:grid;gap:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:0 1px 2px rgba(15,30,46,.04),0 10px 30px rgba(15,30,46,.06)}
 h2{font-size:17px;margin:0 0 4px;letter-spacing:-.01em}
 .sub{color:var(--muted);font-size:13.5px;margin:0 0 6px}
 label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+label .opt{font-weight:400;color:var(--muted)}
 input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;color:var(--ink);background:var(--field)}
 input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:#fff}
-.btn{appearance:none;border:0;width:100%;margin-top:16px;padding:13px 16px;border-radius:10px;background:var(--brand);color:#fff;font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+input[type=number]{font-variant-numeric:tabular-nums}
+.pw{position:relative}
+.pw input{padding-right:64px}
+.pw button{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--brand);font:600 12.5px Inter,sans-serif;cursor:pointer;padding:6px}
+.btn{appearance:none;border:0;width:100%;margin-top:18px;padding:13px 16px;border-radius:10px;background:var(--brand);color:#fff;font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
 .btn:hover{background:var(--brand-2)}
 .btn:disabled{opacity:.6;cursor:wait}
 .btn.green{background:var(--ok)} .btn.green:hover{background:#17623C}
-.hello{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.hello h2{font-size:19px}
-.chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 9px;border-radius:99px;margin-top:4px}
 .link{background:none;border:0;color:var(--muted);font:500 13px Inter,sans-serif;cursor:pointer;padding:4px 0}
 .link:hover{color:var(--ink)}
 .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* profile */
+.profile{display:flex;align-items:center;gap:14px}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:18px;flex:none}
+.profile h2{font-size:18px;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 9px;border-radius:99px}
+.chip.role{color:#6B3FA0;background:#F1E9FB}
+.profile .link{margin-left:auto;align-self:flex-start}
+
+/* progress */
 .big{display:flex;align-items:baseline;gap:6px;margin:6px 0 12px}
 .big b{font-size:36px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .big span{color:var(--muted);font-size:14px}
 .bar{height:10px;background:#EAEFF4;border-radius:99px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--brand);border-radius:99px;transition:width .6s ease}
 .bar.done i{background:var(--ok)}
-.msg{font-size:13.5px;margin-top:10px;color:var(--muted)}
+.msg{font-size:13.5px;margin:10px 0 0;color:var(--muted)}
 .msg.done{color:var(--ok);font-weight:600}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
-.stat{background:var(--bg);border-radius:10px;padding:10px 12px}
+.stats{display:grid;grid-template-columns:.7fr 1.15fr 1.15fr;gap:8px;margin-top:16px}
+.stat{background:var(--bg);border-radius:10px;padding:10px 12px;min-width:0}
 .stat small{display:block;font-size:11.5px;color:var(--muted)}
-.stat b{font-size:18px;font-variant-numeric:tabular-nums}
-.live{border-color:#BFD9F5;background:linear-gradient(180deg,#F4F9FF 0%,#FFFFFF 70%)}
+.stat b{display:block;font-size:15px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat em{font-style:normal;font-size:11px;color:var(--muted)}
+
+/* live task */
+.live{border-color:#BFD9F5;background:linear-gradient(180deg,#F4F9FF 0%,#FFFFFF 40%)}
 .livehead{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--info);display:inline-block;margin-right:7px;animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.25}}
 .timer{font-weight:700;font-size:32px;line-height:1;font-variant-numeric:tabular-nums;margin:14px 0 4px;letter-spacing:-.02em}
+.divider{height:1px;background:var(--line);margin:18px 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.group{border:1px solid var(--line);border-radius:12px;padding:2px 14px 14px;margin-top:14px}
+.group.valid{border-color:#BFE5CF;background:#F7FCF9}
+.group.invalid{border-color:#F3CFCB;background:#FFF9F8}
+.group h3{font-size:13px;margin:12px 0 0;display:flex;align-items:center;gap:7px}
+.group h3 i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.hint{font-size:12px;color:var(--muted);margin-top:5px;min-height:16px;font-variant-numeric:tabular-nums}
+.total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;background:var(--bg);border-radius:10px;font-size:14px}
+.total b{font-variant-numeric:tabular-nums}
+
+/* list */
+.row{display:flex;justify-content:space-between;align-items:center}
 .list{list-style:none;margin:8px 0 0;padding:0}
-.list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.list li{padding:14px 0;border-top:1px solid var(--line)}
 .list li:first-child{border-top:0}
-.list .t b{display:block;font-size:14.5px}
-.list .t span{font-size:12.5px;color:var(--muted)}
-.right{text-align:right;font-size:13px}
-.right b{display:block;font-variant-numeric:tabular-nums}
-.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;margin-top:3px}
+.lt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.lt b{font-size:14.5px}
+.lt span{display:block;font-size:12.5px;color:var(--muted)}
+.lm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.lm div{font-size:12px;color:var(--muted)}
+.lm div b{display:block;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
 .pill.Completed{background:var(--ok-soft);color:var(--ok)}
-.pill.Partial{background:var(--warn-soft);color:var(--warn)}
 .pill.InProgress{background:var(--info-soft);color:var(--info)}
 .empty{color:var(--muted);font-size:14px;text-align:center;padding:16px 0 6px}
-.note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
-.row{display:flex;justify-content:space-between;align-items:center}
+
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .toast.err{background:var(--bad)}
@@ -81,6 +111,7 @@ input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--br
 .loading .spin{border-color:var(--line);border-top-color:var(--brand);width:22px;height:22px;margin-bottom:10px}
 footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px}
 .hidden{display:none!important}
+@media (max-width:380px){ .grid2{grid-template-columns:1fr} .stats{gap:8px} .stat{padding:9px 10px} }
 </style>
 </head>
 <body>
@@ -95,51 +126,54 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
         <path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
       </svg>
     </div>
-    <div class="brand"><b>Speech Ocean</b><span>Indonesia #1 · Transcription</span></div>
+    <div class="brand"><b>Speech Ocean</b><span>Indonesia #1 · Work Portal</span></div>
     <span class="demo hidden" id="demoTag">Demo</span>
   </div>
 </header>
 
 <main>
-  <!-- Loading -->
-  <section class="card loading" id="vLoading"><div class="spin"></div>Loading your progress…</section>
+  <section class="card loading" id="vLoading"><div class="spin"></div>Loading…</section>
 
   <!-- Sign in -->
   <section class="card hidden" id="vLogin">
-    <h2>Sign in to start working</h2>
-    <p class="sub">Use the Member ID given by your team lead.</p>
+    <h2>Sign in</h2>
+    <p class="sub">Use the ID and password given by your team lead.</p>
     <form id="fLogin" autocomplete="on">
-      <label for="inId">Member ID</label>
-      <input id="inId" name="memberId" placeholder="e.g. IDN-014" required autocapitalize="characters">
-      <label for="inName">Full Name</label>
-      <input id="inName" name="name" placeholder="Your full name" required>
-      <button class="btn" type="submit">Continue</button>
+      <label for="inId">ID</label>
+      <input id="inId" name="username" autocomplete="username" placeholder="Your ID" required autocapitalize="characters">
+      <label for="inPass">Password</label>
+      <div class="pw">
+        <input id="inPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
+        <button type="button" id="btnEye">Show</button>
+      </div>
+      <button class="btn" type="submit">Sign in</button>
     </form>
   </section>
 
   <!-- Dashboard -->
-  <div class="hidden" id="vDash" style="display:grid;gap:14px">
+  <div class="stack hidden" id="vDash">
     <section class="card">
-      <div class="hello">
+      <div class="profile">
+        <div class="avatar" id="avatar">–</div>
         <div>
-          <p class="eyebrow" id="today">Today</p>
-          <h2 id="hello">Hello</h2>
-          <span class="chip" id="memberChip"></span>
+          <h2 id="pName">—</h2>
+          <div class="chips"><span class="chip" id="pId"></span><span class="chip role hidden" id="pRole"></span></div>
         </div>
         <button class="link" id="btnOut" type="button">Sign out</button>
       </div>
 
-      <div style="margin-top:18px">
-        <div class="eyebrow">Today's progress</div>
-        <div class="big"><b id="audios">0</b><span id="ofMin">/ 500 audios minimum</span></div>
+      <div class="divider"></div>
+      <div style="margin-top:14px">
+        <div class="row"><span class="eyebrow">Today's progress</span><span class="eyebrow" id="today"></span></div>
+        <div class="big"><b id="items">0</b><span id="ofMin">/ 500 audio items minimum</span></div>
         <div class="bar" id="bar"><i></i></div>
         <p class="msg" id="msg"></p>
       </div>
 
       <div class="stats">
-        <div class="stat"><small>Tasks done</small><b id="sTasks">0</b></div>
-        <div class="stat"><small>Hours</small><b id="sHours">0.0</b></div>
-        <div class="stat"><small>Extra audios</small><b id="sExtra">0</b></div>
+        <div class="stat"><small>Tasks</small><b id="sTasks">0</b></div>
+        <div class="stat"><small>Valid (ms)</small><b id="sValid">0</b><em id="sValidI">0 items</em></div>
+        <div class="stat"><small>Invalid (ms)</small><b id="sInvalid">0</b><em id="sInvalidI">0 items</em></div>
       </div>
     </section>
 
@@ -151,22 +185,50 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
       </div>
       <div class="timer" id="timer">00:00:00</div>
       <p class="sub" id="liveSince">Started at —</p>
-      <form id="fFinish">
-        <label for="inAudios">Audios completed in this task</label>
-        <input id="inAudios" type="number" inputmode="numeric" min="0" max="500" required>
-        <label for="inNotes">Notes <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+
+      <div class="divider"></div>
+      <h2 style="margin-top:14px">Submit task result</h2>
+      <p class="sub">When you finish on the platform copy these values from the <b>Complete</b> tab.</p>
+
+      <form id="fFinish" novalidate>
+        <label for="inTaskId">Task ID</label>
+        <input id="inTaskId" required autocapitalize="characters">
+        <div class="grid2">
+          <div><label for="inBatch">Batch</label><input id="inBatch" inputmode="numeric" placeholder="e.g. 946" required></div>
+          <div><label for="inTaskName">Task Name</label><input id="inTaskName" placeholder="e.g. batch_04" required></div>
+        </div>
+
+        <div class="group valid">
+          <h3><i style="background:var(--ok)"></i>Valid</h3>
+          <div class="grid2">
+            <div><label for="inVMs">Duration (ms)</label><input id="inVMs" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120" required><div class="hint" id="hVMs"></div></div>
+            <div><label for="inVIt">Audio Items</label><input id="inVIt" type="number" inputmode="numeric" min="0" step="1" placeholder="428" required></div>
+          </div>
+        </div>
+
+        <div class="group invalid">
+          <h3><i style="background:var(--bad)"></i>Invalid</h3>
+          <div class="grid2">
+            <div><label for="inIMs">Duration (ms)</label><input id="inIMs" type="number" inputmode="numeric" min="0" step="1" placeholder="244919" required><div class="hint" id="hIMs"></div></div>
+            <div><label for="inIIt">Audio Items</label><input id="inIIt" type="number" inputmode="numeric" min="0" step="1" placeholder="72" required></div>
+          </div>
+        </div>
+
+        <div class="total"><span>Total audio items</span><b id="tItems">0</b></div>
+
+        <label for="inNotes">Notes <span class="opt">(optional)</span></label>
         <input id="inNotes" placeholder="Any issue with this task?">
-        <button class="btn green" type="submit">Finish Task</button>
+        <button class="btn green" type="submit">Submit Task</button>
       </form>
     </section>
 
     <!-- Start task -->
     <section class="card hidden" id="cStart">
       <h2 id="startTitle">Start a task</h2>
-      <p class="sub" id="startSub">One task has 500 audios. Complete at least one task every day.</p>
+      <p class="sub" id="startSub"></p>
       <form id="fStart">
         <label for="inTask">Task ID</label>
-        <input id="inTask" placeholder="Enter the Task ID from the platform" required autocapitalize="characters">
+        <input id="inTask" placeholder="Task ID from the platform" required autocapitalize="characters">
         <button class="btn" type="submit">Start Task</button>
       </form>
     </section>
@@ -186,14 +248,14 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* ====== CONFIG: paste your Apps Script Web App URL here ====== */
+/* ====== CONFIG ====== */
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAxa8IoqPqBx7sOFu3e4slmXodAZwghvF2HC-YszCGzhSx6Fca2hpH96k3QxVzVoK_fg/exec';
-/* ============================================================= */
+/* ==================== */
 
-const DEMO = !/^https:\/\/script\.google\.com\//.test(SCRIPT_URL);
-const KEY = 'so_idn1_member';
+const DEMO = !/^https:\/\/script\.google\.com\//.test(SCRIPT_URL) || new URLSearchParams(location.search).has('demo');
+const KEY = 'so_idn1_session_v3';
 const $ = id => document.getElementById(id);
-let state = null, tick = null;
+let state = null, session = null, tick = null;
 
 const store = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
@@ -201,68 +263,77 @@ const store = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 
-/* ---------- API ---------- */
+/* ---------- API (GET only — works reliably with Apps Script) ---------- */
 async function api(action, data){
   if (DEMO) return demo(action, data);
-  if (action === 'status'){
-    const r = await fetch(SCRIPT_URL + '?action=status&memberId=' + encodeURIComponent(data.memberId));
-    return r.json();
-  }
-  const r = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(Object.assign({ action }, data))
-  });
-  return r.json();
+  const q = new URLSearchParams(Object.assign({ action }, data, { _: Date.now() }));
+  let r;
+  try { r = await fetch(SCRIPT_URL + '?' + q.toString(), { redirect: 'follow' }); }
+  catch (e) { throw new Error('Cannot reach the server. Check your internet and try again.'); }
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error('Server is not set up correctly. Please contact your team lead.'); }
 }
+const call = (action, data) => api(action, Object.assign({ memberId: session.memberId, token: session.token }, data));
 
-/* ---------- Views ---------- */
-function show(v){
-  ['vLoading','vLogin','vDash'].forEach(x => $(x).classList.toggle('hidden', x !== v));
-}
+/* ---------- helpers ---------- */
+function show(v){ ['vLoading','vLogin','vDash'].forEach(x => $(x).classList.toggle('hidden', x !== v)); }
 function toast(text, err){
   const t = $('toast'); t.textContent = text; t.className = 'toast show' + (err ? ' err' : '');
-  clearTimeout(t._h); t._h = setTimeout(() => t.className = 'toast', 3200);
+  clearTimeout(t._h); t._h = setTimeout(() => t.className = 'toast', 3400);
 }
 function busy(form, on){
   const b = form.querySelector('button[type=submit]');
   if (!b._label) b._label = b.innerHTML;
   b.disabled = on; b.innerHTML = on ? '<span class="spin"></span>Please wait' : b._label;
 }
+const n = v => Number(v || 0).toLocaleString('en-US');
 const fmtTime = iso => iso ? new Date(iso).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) : '—';
-const pad = n => String(n).padStart(2,'0');
+const pad = x => String(x).padStart(2,'0');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function msHint(ms){
+  ms = Number(ms); if (!ms || ms < 0) return '';
+  const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+  return '≈ ' + (h ? h + 'h ' : '') + m + 'm ' + sec + 's';
+}
+const roleName = r => r === 'TR' ? 'Transcriber · TR' : r === 'QA' ? 'Quality Assurance · QA' : r;
 
+/* ---------- render ---------- */
 function render(s){
   state = s;
-  const min = s.min || 500, per = s.perTask || 500;
-  const done = s.tasks.filter(t => t.end);
-  const audios = s.tasks.reduce((a,t) => a + (t.audios || 0), 0);
-  const mins = done.reduce((a,t) => a + (t.minutes || 0), 0);
-  const met = audios >= min;
+  const min = s.min || 500;
+  const done = s.tasks.filter(t => t.status === 'Completed');
+  const sum = k => done.reduce((a,t) => a + (t[k] || 0), 0);
+  const items = sum('totalItems'), met = items >= min;
 
-  $('today').textContent = new Date().toLocaleDateString([], { weekday:'long', day:'numeric', month:'long' });
-  $('hello').textContent = 'Hello, ' + (s.name || '').split(' ')[0];
-  $('memberChip').textContent = s.memberId;
-  $('audios').textContent = audios.toLocaleString();
-  $('ofMin').textContent = '/ ' + min.toLocaleString() + ' audios minimum';
+  $('avatar').textContent = (s.name || '?').trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+  $('pName').textContent = s.name;
+  $('pId').textContent = 'ID ' + s.memberId;
+  $('pRole').textContent = roleName(s.role || '');
+  $('pRole').classList.toggle('hidden', !s.role);
+  $('today').textContent = new Date().toLocaleDateString([], { day:'numeric', month:'short' });
+
+  $('items').textContent = n(items);
+  $('ofMin').textContent = '/ ' + n(min) + ' audio items minimum';
   $('bar').classList.toggle('done', met);
-  $('bar').firstElementChild.style.width = Math.min(100, audios / min * 100) + '%';
-  const msg = $('msg');
-  msg.className = 'msg' + (met ? ' done' : '');
+  $('bar').firstElementChild.style.width = Math.min(100, items / min * 100) + '%';
+  const msg = $('msg'); msg.className = 'msg' + (met ? ' done' : '');
   msg.textContent = met
-    ? (audios > min ? 'Daily minimum reached · +' + (audios - min).toLocaleString() + ' extra audios. Great work!' : 'Daily minimum reached. You can take more tasks if you want.')
-    : (min - audios).toLocaleString() + ' audios left to reach today\'s minimum.';
-  $('sTasks').textContent = s.tasks.filter(t => t.status === 'Completed').length;
-  $('sHours').textContent = (mins / 60).toFixed(1);
-  $('sExtra').textContent = Math.max(0, audios - min).toLocaleString();
+    ? (items > min ? 'Daily minimum reached · +' + n(items - min) + ' extra items. Great work!' : 'Daily minimum reached. You can take more tasks if you want.')
+    : n(min - items) + ' audio items left to reach today\'s minimum.';
+  $('sTasks').textContent = done.length;
+  $('sValid').textContent = n(sum('validMs'));  $('sValidI').textContent = n(sum('validItems')) + ' items';
+  $('sInvalid').textContent = n(sum('invalidMs')); $('sInvalidI').textContent = n(sum('invalidItems')) + ' items';
 
-  // active vs start
   clearInterval(tick);
   if (s.open){
     $('cLive').classList.remove('hidden'); $('cStart').classList.add('hidden');
     $('liveTask').textContent = s.open.taskId;
     $('liveSince').textContent = 'Started at ' + fmtTime(s.open.start);
-    const inA = $('inAudios'); inA.max = per; if (!inA.value) inA.value = per;
+    if ($('fFinish').dataset.log !== s.open.logId){
+      $('fFinish').reset(); $('fFinish').dataset.log = s.open.logId;
+      $('inTaskId').value = s.open.taskId; updateHints();
+    }
     const t0 = new Date(s.open.start).getTime();
     const upd = () => { const d = Math.max(0, Math.floor((Date.now() - t0) / 1000));
       $('timer').textContent = pad(Math.floor(d/3600)) + ':' + pad(Math.floor(d%3600/60)) + ':' + pad(d%60); };
@@ -272,42 +343,57 @@ function render(s){
     $('startTitle').textContent = met ? 'Take another task' : (s.tasks.length ? 'Start your next task' : 'Start your first task');
     $('startSub').textContent = met
       ? 'You have reached today\'s minimum. Extra tasks are welcome.'
-      : 'One task has ' + per.toLocaleString() + ' audios. Complete at least ' + min.toLocaleString() + ' audios every day.';
+      : 'Complete at least ' + n(min) + ' audio items today. You can take as many tasks as you like.';
   }
 
-  // list
   const ul = $('list');
-  if (!s.tasks.length){ ul.innerHTML = '<li class="empty" style="display:block">No tasks yet today.</li>'; }
-  else {
-    ul.innerHTML = s.tasks.slice().reverse().map(t => {
-      const st = t.end ? t.status : 'In Progress';
-      const dur = t.end ? ' · ' + Math.floor(t.minutes/60) + 'h ' + (t.minutes%60) + 'm' : '';
-      return '<li><div class="t"><b>' + esc(t.taskId) + '</b><span>' + fmtTime(t.start) + ' – ' + (t.end ? fmtTime(t.end) : 'now') + dur + '</span></div>' +
-             '<div class="right"><b>' + (t.end ? t.audios.toLocaleString() + ' audios' : '—') + '</b><span class="pill ' + st.replace(/\s/g,'') + '">' + st + '</span></div></li>';
-    }).join('');
-  }
+  if (!s.tasks.length){ ul.innerHTML = '<li class="empty">No tasks yet today.</li>'; }
+  else ul.innerHTML = s.tasks.slice().reverse().map(t => {
+    const live = t.status !== 'Completed';
+    const meta = [t.batch && 'Batch ' + esc(t.batch), esc(t.taskName)].filter(Boolean).join(' · ');
+    return '<li><div class="lt"><div><b>Task ' + esc(t.taskId) + '</b><span>' + (meta ? meta + ' · ' : '') +
+      fmtTime(t.start) + ' – ' + (t.end ? fmtTime(t.end) : 'now') + '</span></div>' +
+      '<span class="pill ' + (live ? 'InProgress' : 'Completed') + '">' + (live ? 'In Progress' : 'Completed') + '</span></div>' +
+      (live ? '' : '<div class="lm"><div>Valid<b>' + n(t.validMs) + ' ms</b>' + n(t.validItems) + ' items</div>' +
+        '<div>Invalid<b>' + n(t.invalidMs) + ' ms</b>' + n(t.invalidItems) + ' items</div>' +
+        '<div>Total<b>' + n(t.totalItems) + '</b>items</div></div>') + '</li>';
+  }).join('');
   show('vDash');
 }
-function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* ---------- Actions ---------- */
-async function load(){
-  const me = store.get(KEY);
-  if (!me){ show('vLogin'); return; }
-  try {
-    const s = await api('status', { memberId: me.memberId });
-    if (!s.ok){ if (s.code === 'NOT_FOUND'){ store.del(KEY); show('vLogin'); return; } throw new Error(s.error); }
-    render(s);
-  } catch(e){ show(state ? 'vDash' : 'vLogin'); toast(e.message || 'Connection problem. Please try again.', true); }
+function updateHints(){
+  $('hVMs').textContent = msHint($('inVMs').value);
+  $('hIMs').textContent = msHint($('inIMs').value);
+  $('tItems').textContent = n((Number($('inVIt').value) || 0) + (Number($('inIIt').value) || 0));
 }
+['inVMs','inIMs','inVIt','inIIt'].forEach(id => $(id).addEventListener('input', updateHints));
+
+/* ---------- actions ---------- */
+function signOut(){ store.del(KEY); session = null; state = null; clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
+
+async function load(silent){
+  session = store.get(KEY);
+  if (!session){ show('vLogin'); return; }
+  try {
+    const s = await call('status', {});
+    if (!s.ok){ if (s.code === 'AUTH'){ signOut(); toast(s.error, true); return; } throw new Error(s.error); }
+    render(s); if (silent === 'toast') toast('Updated');
+  } catch(e){ if (!state) show('vLogin'); toast(e.message, true); }
+}
+
+$('btnEye').addEventListener('click', () => {
+  const p = $('inPass'), on = p.type === 'password';
+  p.type = on ? 'text' : 'password'; $('btnEye').textContent = on ? 'Hide' : 'Show';
+});
 
 $('fLogin').addEventListener('submit', async e => {
   e.preventDefault(); const f = e.target; busy(f, true);
-  const memberId = $('inId').value.trim().toUpperCase(), name = $('inName').value.trim();
+  const memberId = $('inId').value.trim().toUpperCase();
   try {
-    const s = await api('login', { memberId, name });
+    const s = await api('login', { memberId, password: $('inPass').value.trim() });
     if (!s.ok) throw new Error(s.error);
-    store.set(KEY, { memberId, name: s.name }); render(s); toast('Welcome, ' + s.name.split(' ')[0]);
+    session = { memberId, token: s.token }; store.set(KEY, session);
+    render(s); toast('Welcome, ' + String(s.name).split(' ')[0]);
   } catch(err){ toast(err.message || 'Could not sign in.', true); }
   busy(f, false);
 });
@@ -315,63 +401,69 @@ $('fLogin').addEventListener('submit', async e => {
 $('fStart').addEventListener('submit', async e => {
   e.preventDefault(); const f = e.target; busy(f, true);
   try {
-    const s = await api('start', { memberId: state.memberId, taskId: $('inTask').value.trim().toUpperCase() });
-    if (!s.ok) throw new Error(s.error);
-    $('inTask').value = ''; $('inAudios').value = ''; $('inNotes').value = '';
-    render(s); toast('Task started. Good luck!');
+    const s = await call('start', { taskId: $('inTask').value.trim().toUpperCase() });
+    if (!s.ok){ if (s.code === 'AUTH'){ signOut(); } throw new Error(s.error); }
+    $('inTask').value = ''; render(s); toast('Task started. Good luck!');
   } catch(err){ toast(err.message || 'Could not start the task.', true); }
   busy(f, false);
 });
 
 $('fFinish').addEventListener('submit', async e => {
   e.preventDefault(); const f = e.target;
-  const audios = Number($('inAudios').value), per = state.perTask || 500;
-  if (!(audios >= 0 && audios <= per)){ toast('Audios must be between 0 and ' + per + '.', true); return; }
-  if (audios < per && !confirm('This task has ' + per + ' audios but you entered ' + audios + '. It will be saved as Partial. Continue?')) return;
+  const v = id => $(id).value.trim();
+  const need = [['inTaskId','Task ID'],['inBatch','Batch'],['inTaskName','Task Name'],['inVMs','Valid duration'],['inVIt','Valid items'],['inIMs','Invalid duration'],['inIIt','Invalid items']];
+  const miss = need.find(([id]) => v(id) === '');
+  if (miss){ toast('Please fill in ' + miss[1] + '. Enter 0 if there is none.', true); $(miss[0]).focus(); return; }
+  const nums = ['inVMs','inVIt','inIMs','inIIt'].map(id => Number(v(id)));
+  if (nums.some(x => !Number.isInteger(x) || x < 0)){ toast('Durations and items must be whole numbers.', true); return; }
+  const total = nums[1] + nums[3];
+  if (!confirm('Submit Task ' + v('inTaskId') + '?\n\nValid: ' + n(nums[0]) + ' ms / ' + n(nums[1]) + ' items\nInvalid: ' + n(nums[2]) + ' ms / ' + n(nums[3]) + ' items\nTotal: ' + n(total) + ' items\n\nPlease double-check with the platform.')) return;
   busy(f, true);
   try {
-    const s = await api('finish', { memberId: state.memberId, logId: state.open.logId, audios, notes: $('inNotes').value.trim() });
-    if (!s.ok) throw new Error(s.error);
-    $('inAudios').value = ''; $('inNotes').value = '';
-    render(s); toast(audios >= per ? 'Task completed!' : 'Task saved as Partial.');
-  } catch(err){ toast(err.message || 'Could not finish the task.', true); }
+    const s = await call('finish', {
+      logId: state.open.logId, taskId: v('inTaskId').toUpperCase(), batch: v('inBatch'), taskName: v('inTaskName'),
+      validMs: nums[0], validItems: nums[1], invalidMs: nums[2], invalidItems: nums[3], notes: v('inNotes')
+    });
+    if (!s.ok){ if (s.code === 'AUTH'){ signOut(); } throw new Error(s.error); }
+    f.dataset.log = ''; render(s); toast('Task submitted!');
+  } catch(err){ toast(err.message || 'Could not submit the task.', true); }
   busy(f, false);
 });
 
 $('btnOut').addEventListener('click', () => {
   if (state && state.open && !confirm('You have a task in progress. Sign out anyway? The timer keeps running.')) return;
-  store.del(KEY); state = null; clearInterval(tick); $('fLogin').reset(); show('vLogin');
+  signOut();
 });
-$('btnRefresh').addEventListener('click', () => { load(); toast('Updated'); });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && state) load(); });
+$('btnRefresh').addEventListener('click', () => load('toast'));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && session) load(); });
 
-/* ---------- Demo mode (only when SCRIPT_URL is not set) ---------- */
+/* ---------- demo mode (add ?demo to the URL to preview without the sheet) ---------- */
 function demo(action, d){
-  const db = store.get('so_demo_db') || { members:{}, log:[] };
-  const save = () => store.set('so_demo_db', db);
+  const db = store.get('so_demo_db_v3') || { log:[] };
+  const save = () => store.set('so_demo_db_v3', db);
   const day = new Date().toDateString();
   const status = id => {
-    const m = db.members[id]; if (!m) return { ok:false, code:'NOT_FOUND', error:'Member not found.' };
     const mine = db.log.filter(r => r.memberId === id);
-    return { ok:true, memberId:id, name:m.name, min:500, perTask:500,
-      tasks: mine.filter(r => r.day === day), open: mine.find(r => !r.end) || null };
+    return { ok:true, memberId:id, name:'Demo Member', role:'TR', min:500,
+      tasks: mine.filter(r => r.day === day), open: mine.find(r => r.status === 'In Progress') || null };
   };
   return new Promise(res => setTimeout(() => {
     const id = d.memberId;
+    if (action === 'login') return res(Object.assign(status(id), { token:'demo' }));
     if (action === 'status') return res(status(id));
-    if (action === 'login'){ if (!db.members[id]) db.members[id] = { name:d.name }; save(); return res(status(id)); }
     if (action === 'start'){
-      if (db.log.some(r => r.memberId === id && !r.end)) return res({ ok:false, error:'You already have a task in progress. Finish it before starting a new one.' });
-      if (db.log.some(r => r.taskId === d.taskId && r.status === 'Completed')) return res({ ok:false, error:'Task ' + d.taskId + ' is already completed.' });
-      db.log.push({ logId:'L'+Date.now(), day, memberId:id, taskId:d.taskId, start:new Date().toISOString(), end:null, minutes:0, audios:0, status:'In Progress' });
+      if (db.log.some(r => r.memberId === id && r.status === 'In Progress')) return res({ ok:false, error:'You already have a task in progress. Submit it before starting a new one.' });
+      db.log.push({ logId:'L'+Date.now(), day, memberId:id, taskId:d.taskId, start:new Date().toISOString(), status:'In Progress' });
       save(); return res(status(id));
     }
     if (action === 'finish'){
       const r = db.log.find(x => x.logId === d.logId);
-      r.end = new Date().toISOString(); r.minutes = Math.max(1, Math.round((new Date(r.end) - new Date(r.start)) / 60000));
-      r.audios = d.audios; r.status = d.audios >= 500 ? 'Completed' : 'Partial'; save(); return res(status(id));
+      Object.assign(r, { taskId:d.taskId, batch:d.batch, taskName:d.taskName, end:new Date().toISOString(),
+        validMs:+d.validMs, validItems:+d.validItems, invalidMs:+d.invalidMs, invalidItems:+d.invalidItems,
+        totalItems:+d.validItems + +d.invalidItems, status:'Completed' });
+      save(); return res(status(id));
     }
-  }, 350));
+  }, 300));
 }
 
 if (DEMO) $('demoTag').classList.remove('hidden');
