@@ -13,6 +13,7 @@
   --brand:#0B5E8E; --brand-2:#0B3D5C; --brand-soft:#E6F1F8;
   --ok:#1E7A4C; --ok-soft:#DDF3E6; --warn:#9A6300; --warn-soft:#FFF1D1;
   --bad:#B3261E; --bad-soft:#FBE2E0; --info:#1F5FBF; --info-soft:#DCEBFF;
+  --violet:#6B3FA0; --violet-soft:#F1E9FB; --gray-soft:#ECEFF3;
   --r:16px;
 }
 *{box-sizing:border-box}
@@ -41,9 +42,13 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .btn:hover{background:var(--brand-2)}
 .btn:disabled{opacity:.6;cursor:wait}
 .btn.green{background:var(--ok)} .btn.green:hover{background:#17623C}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)} .btn.ghost:hover{background:var(--bg)}
+.btn.slate{background:#4A5868} .btn.slate:hover{background:#38444F}
 .link{background:none;border:0;color:var(--muted);font:500 13px Inter,sans-serif;cursor:pointer;padding:4px 0}
 .link:hover{color:var(--ink)}
 .eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.divider{height:1px;background:var(--line);margin:18px 0 4px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
 /* profile */
 .profile{display:flex;align-items:center;gap:14px}
@@ -51,7 +56,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .profile h2{font-size:18px;margin:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 9px;border-radius:99px}
-.chip.role{color:#6B3FA0;background:#F1E9FB}
+.chip.role{color:var(--violet);background:var(--violet-soft)}
 .profile .link{margin-left:auto;align-self:flex-start}
 
 /* progress */
@@ -68,14 +73,21 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .stat small{display:block;font-size:11.5px;color:var(--muted)}
 .stat b{display:block;font-size:15px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat em{font-style:normal;font-size:11px;color:var(--muted)}
+.pending-note{margin-top:12px;font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:8px 12px}
 
-/* live task */
+/* segmented */
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:10px;padding:4px;gap:4px;margin-top:14px}
+.seg button{border:0;background:none;border-radius:8px;padding:9px 10px;font:600 13.5px Inter,sans-serif;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(15,30,46,.12)}
+.seg button.on[data-type=Rework]{color:var(--violet)}
+.reworknote{font-size:12.5px;color:var(--violet);margin-top:8px}
+
+/* form card */
 .live{border-color:#BFD9F5;background:linear-gradient(180deg,#F4F9FF 0%,#FFFFFF 40%)}
-.livehead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.live.edit{border-color:#F0D9A8;background:linear-gradient(180deg,#FFFBF1 0%,#FFFFFF 40%)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--info);display:inline-block;margin-right:7px;animation:pulse 1.6s infinite}
 @keyframes pulse{50%{opacity:.25}}
 .timer{font-weight:700;font-size:32px;line-height:1;font-variant-numeric:tabular-nums;margin:14px 0 4px;letter-spacing:-.02em}
-.divider{height:1px;background:var(--line);margin:18px 0 4px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 .group{border:1px solid var(--line);border-radius:12px;padding:2px 14px 14px;margin-top:14px}
 .group.valid{border-color:#BFE5CF;background:#F7FCF9}
@@ -85,21 +97,36 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .hint{font-size:12px;color:var(--muted);margin-top:5px;min-height:16px;font-variant-numeric:tabular-nums}
 .total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;background:var(--bg);border-radius:10px;font-size:14px}
 .total b{font-variant-numeric:tabular-nums}
+.btnrow{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.btnrow .btn{margin-top:18px}
+
+/* no data */
+.nodata{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.nodata .btn{margin-top:0}
+.nodata-info{display:flex;gap:10px;align-items:flex-start;background:var(--gray-soft);border-radius:10px;padding:12px 14px;font-size:13.5px;color:#3A4756;margin-top:16px}
 
 /* list */
-.row{display:flex;justify-content:space-between;align-items:center}
 .list{list-style:none;margin:8px 0 0;padding:0}
 .list li{padding:14px 0;border-top:1px solid var(--line)}
 .list li:first-child{border-top:0}
 .lt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .lt b{font-size:14.5px}
-.lt span{display:block;font-size:12.5px;color:var(--muted)}
+.lt span.meta{display:block;font-size:12.5px;color:var(--muted)}
 .lm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .lm div{font-size:12px;color:var(--muted)}
 .lm div b{display:block;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
 .pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
-.pill.Completed{background:var(--ok-soft);color:var(--ok)}
-.pill.InProgress{background:var(--info-soft);color:var(--info)}
+.pill.prog{background:var(--info-soft);color:var(--info)}
+.pill.pend{background:var(--warn-soft);color:var(--warn)}
+.pill.ver{background:var(--ok-soft);color:var(--ok)}
+.pill.nod{background:var(--gray-soft);color:var(--muted)}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--violet);background:var(--violet-soft);padding:1px 7px;border-radius:5px;margin-left:6px;vertical-align:2px}
+.acts{display:flex;gap:8px;margin-top:12px}
+.acts button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 10px;font:600 13px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.acts button:hover{background:var(--bg)}
+.acts button.del{color:var(--bad)}
+.acts button.del:hover{background:var(--bad-soft);border-color:#F3CFCB}
+.locked{margin-top:10px;font-size:12px;color:var(--ok)}
 .empty{color:var(--muted);font-size:14px;text-align:center;padding:16px 0 6px}
 
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.18)}
@@ -111,7 +138,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .loading .spin{border-color:var(--line);border-top-color:var(--brand);width:22px;height:22px;margin-bottom:10px}
 footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px}
 .hidden{display:none!important}
-@media (max-width:380px){ .grid2{grid-template-columns:1fr} .stats{gap:8px} .stat{padding:9px 10px} }
+@media (max-width:380px){ .grid2{grid-template-columns:1fr} .stat{padding:9px 10px} }
 </style>
 </head>
 <body>
@@ -169,56 +196,62 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
         <div class="bar" id="bar"><i></i></div>
         <p class="msg" id="msg"></p>
       </div>
-
       <div class="stats">
         <div class="stat"><small>Tasks</small><b id="sTasks">0</b></div>
         <div class="stat"><small>Valid (ms)</small><b id="sValid">0</b><em id="sValidI">0 items</em></div>
         <div class="stat"><small>Invalid (ms)</small><b id="sInvalid">0</b><em id="sInvalidI">0 items</em></div>
       </div>
+      <div class="pending-note hidden" id="pendNote"></div>
     </section>
 
-    <!-- Active task -->
-    <section class="card live hidden" id="cLive">
-      <div class="livehead">
-        <span class="eyebrow"><span class="dot"></span>Task in progress</span>
-        <span class="chip" id="liveTask"></span>
-      </div>
-      <div class="timer" id="timer">00:00:00</div>
-      <p class="sub" id="liveSince">Started at —</p>
-
-      <div class="divider"></div>
-      <h2 style="margin-top:14px">Submit task result</h2>
-      <p class="sub">When you finish on the platform copy these values from the <b>Complete</b> tab.</p>
-
-      <form id="fFinish" novalidate>
-        <label for="inTaskId">Task ID</label>
-        <input id="inTaskId" required autocapitalize="characters">
-        <div class="grid2">
-          <div><label for="inBatch">Batch</label><input id="inBatch" inputmode="numeric" placeholder="e.g. 946" required></div>
-          <div><label for="inTaskName">Task Name</label><input id="inTaskName" placeholder="e.g. batch_04" required></div>
+    <!-- Result form: submit (task in progress) or edit (pending report) -->
+    <section class="card live hidden" id="cForm">
+      <div id="headLive">
+        <div class="row">
+          <span class="eyebrow"><span class="dot"></span>Task in progress</span>
+          <span><span class="chip" id="liveTask"></span><span class="tag hidden" id="liveRework">Rework</span></span>
         </div>
+        <div class="timer" id="timer">00:00:00</div>
+        <p class="sub" id="liveSince">Started at —</p>
+        <div class="divider"></div>
+        <h2 style="margin-top:14px">Submit task result</h2>
+        <p class="sub">When you finish on the platform copy these values from the <b>Complete</b> tab.</p>
+      </div>
+      <div id="headEdit" class="hidden">
+        <span class="eyebrow" style="color:var(--warn)">Editing report</span>
+        <h2 style="margin-top:6px" id="editTitle">Task</h2>
+        <p class="sub">You can change this report until the admin verifies it.</p>
+      </div>
 
+      <form id="fResult" novalidate>
+        <label for="inTaskId">Task ID</label>
+        <input id="inTaskId" autocapitalize="characters">
+        <div class="grid2">
+          <div><label for="inBatch">Batch</label><input id="inBatch" inputmode="numeric" placeholder="e.g. 946"></div>
+          <div><label for="inTaskName">Task Name</label><input id="inTaskName" placeholder="e.g. batch_04"></div>
+        </div>
         <div class="group valid">
           <h3><i style="background:var(--ok)"></i>Valid</h3>
           <div class="grid2">
-            <div><label for="inVMs">Duration (ms)</label><input id="inVMs" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120" required><div class="hint" id="hVMs"></div></div>
-            <div><label for="inVIt">Audio Items</label><input id="inVIt" type="number" inputmode="numeric" min="0" step="1" placeholder="428" required></div>
+            <div><label for="inVMs">Duration (ms)</label><input id="inVMs" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120"><div class="hint" id="hVMs"></div></div>
+            <div><label for="inVIt">Audio Items</label><input id="inVIt" type="number" inputmode="numeric" min="0" step="1" placeholder="428"></div>
           </div>
         </div>
-
         <div class="group invalid">
           <h3><i style="background:var(--bad)"></i>Invalid</h3>
           <div class="grid2">
-            <div><label for="inIMs">Duration (ms)</label><input id="inIMs" type="number" inputmode="numeric" min="0" step="1" placeholder="244919" required><div class="hint" id="hIMs"></div></div>
-            <div><label for="inIIt">Audio Items</label><input id="inIIt" type="number" inputmode="numeric" min="0" step="1" placeholder="72" required></div>
+            <div><label for="inIMs">Duration (ms)</label><input id="inIMs" type="number" inputmode="numeric" min="0" step="1" placeholder="244919"><div class="hint" id="hIMs"></div></div>
+            <div><label for="inIIt">Audio Items</label><input id="inIIt" type="number" inputmode="numeric" min="0" step="1" placeholder="72"></div>
           </div>
         </div>
-
         <div class="total"><span>Total audio items</span><b id="tItems">0</b></div>
-
         <label for="inNotes">Notes <span class="opt">(optional)</span></label>
         <input id="inNotes" placeholder="Any issue with this task?">
-        <button class="btn green" type="submit">Submit Task</button>
+        <div id="btnsLive"><button class="btn green" type="submit">Submit Task</button></div>
+        <div id="btnsEdit" class="btnrow hidden">
+          <button class="btn ghost" type="button" id="btnCancelEdit">Cancel</button>
+          <button class="btn" type="submit">Save changes</button>
+        </div>
       </form>
     </section>
 
@@ -227,16 +260,35 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
       <h2 id="startTitle">Start a task</h2>
       <p class="sub" id="startSub"></p>
       <form id="fStart">
+        <div class="seg" role="tablist" aria-label="Task type">
+          <button type="button" class="on" data-type="New">New task</button>
+          <button type="button" data-type="Rework">Rework</button>
+        </div>
+        <p class="reworknote hidden" id="reworkNote">Use Rework when a submitted task came back from the platform for correction.</p>
         <label for="inTask">Task ID</label>
-        <input id="inTask" placeholder="Task ID from the platform" required autocapitalize="characters">
-        <button class="btn" type="submit">Start Task</button>
+        <input id="inTask" placeholder="Task ID from the platform" autocapitalize="characters">
+        <button class="btn" type="submit" id="btnStart">Start Task</button>
       </form>
+
+      <div class="nodata" id="noDataBox">
+        <p class="sub" style="margin-bottom:10px">No task available on the platform right now?</p>
+        <button class="btn ghost" type="button" id="btnNoData">No data in the pool</button>
+        <div id="noDataForm" class="hidden">
+          <label for="inNoDataNote">Note <span class="opt">(optional)</span></label>
+          <input id="inNoDataNote" placeholder="e.g. Checked the pool at 10 AM and 2 PM">
+          <div class="btnrow">
+            <button class="btn ghost" type="button" id="btnNoDataCancel">Cancel</button>
+            <button class="btn slate" type="button" id="btnNoDataSend">Submit daily activity</button>
+          </div>
+        </div>
+      </div>
+      <div class="nodata-info hidden" id="noDataInfo"></div>
     </section>
 
-    <!-- Today's tasks -->
+    <!-- Today's reports -->
     <section class="card">
       <div class="row">
-        <h2>Today's tasks</h2>
+        <h2>Today's reports</h2>
         <button class="link" id="btnRefresh" type="button">Refresh</button>
       </div>
       <ul class="list" id="list"></ul>
@@ -244,7 +296,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
   </div>
 </main>
 
-<footer>Speech Ocean · Indonesia #1 — your activity is recorded for project reporting.</footer>
+<footer>Speech Ocean · Indonesia #1 — reports become final after admin verification.</footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -255,7 +307,7 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAxa8IoqPqBx7sOFu3e
 const DEMO = !/^https:\/\/script\.google\.com\//.test(SCRIPT_URL) || new URLSearchParams(location.search).has('demo');
 const KEY = 'so_idn1_session_v3';
 const $ = id => document.getElementById(id);
-let state = null, session = null, tick = null;
+let state = null, session = null, tick = null, editId = null, startType = 'New';
 
 const store = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
@@ -263,7 +315,7 @@ const store = {
   del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 
-/* ---------- API (GET only — works reliably with Apps Script) ---------- */
+/* ---------- API ---------- */
 async function api(action, data){
   if (DEMO) return demo(action, data);
   const q = new URLSearchParams(Object.assign({ action }, data, { _: Date.now() }));
@@ -274,7 +326,11 @@ async function api(action, data){
   try { return JSON.parse(text); }
   catch (e) { throw new Error('Server is not set up correctly. Please contact your team lead.'); }
 }
-const call = (action, data) => api(action, Object.assign({ memberId: session.memberId, token: session.token }, data));
+async function call(action, data){
+  const s = await api(action, Object.assign({ memberId: session.memberId, token: session.token }, data));
+  if (!s.ok){ if (s.code === 'AUTH') signOut(); throw new Error(s.error); }
+  return s;
+}
 
 /* ---------- helpers ---------- */
 function show(v){ ['vLoading','vLogin','vDash'].forEach(x => $(x).classList.toggle('hidden', x !== v)); }
@@ -282,10 +338,11 @@ function toast(text, err){
   const t = $('toast'); t.textContent = text; t.className = 'toast show' + (err ? ' err' : '');
   clearTimeout(t._h); t._h = setTimeout(() => t.className = 'toast', 3400);
 }
-function busy(form, on){
-  const b = form.querySelector('button[type=submit]');
-  if (!b._label) b._label = b.innerHTML;
-  b.disabled = on; b.innerHTML = on ? '<span class="spin"></span>Please wait' : b._label;
+async function withBusy(btn, fn){
+  if (!btn._label) btn._label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Please wait';
+  try { await fn(); } catch(err){ toast(err.message || 'Something went wrong.', true); }
+  btn.disabled = false; btn.innerHTML = btn._label;
 }
 const n = v => Number(v || 0).toLocaleString('en-US');
 const fmtTime = iso => iso ? new Date(iso).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) : '—';
@@ -297,14 +354,17 @@ function msHint(ms){
   return '≈ ' + (h ? h + 'h ' : '') + m + 'm ' + sec + 's';
 }
 const roleName = r => r === 'TR' ? 'Transcriber · TR' : r === 'QA' ? 'Quality Assurance · QA' : r;
+const findTask = id => state && state.tasks.find(t => t.logId === id);
 
 /* ---------- render ---------- */
 function render(s){
   state = s;
   const min = s.min || 500;
-  const done = s.tasks.filter(t => t.status === 'Completed');
-  const sum = k => done.reduce((a,t) => a + (t[k] || 0), 0);
+  const subm = s.tasks.filter(t => t.status === 'Submitted');
+  const sum = k => subm.reduce((a,t) => a + (t[k] || 0), 0);
   const items = sum('totalItems'), met = items >= min;
+  const pending = subm.filter(t => !t.verified).length;
+  const noData = s.tasks.find(t => t.status === 'No Data');
 
   $('avatar').textContent = (s.name || '?').trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
   $('pName').textContent = s.name;
@@ -320,45 +380,83 @@ function render(s){
   const msg = $('msg'); msg.className = 'msg' + (met ? ' done' : '');
   msg.textContent = met
     ? (items > min ? 'Daily minimum reached · +' + n(items - min) + ' extra items. Great work!' : 'Daily minimum reached. You can take more tasks if you want.')
-    : n(min - items) + ' audio items left to reach today\'s minimum.';
-  $('sTasks').textContent = done.length;
+    : (noData && !subm.length ? 'You reported no data in the pool today.' : n(min - items) + ' audio items left to reach today\'s minimum.');
+  $('sTasks').textContent = subm.length;
   $('sValid').textContent = n(sum('validMs'));  $('sValidI').textContent = n(sum('validItems')) + ' items';
   $('sInvalid').textContent = n(sum('invalidMs')); $('sInvalidI').textContent = n(sum('invalidItems')) + ' items';
+  $('pendNote').textContent = pending + (pending === 1 ? ' report is' : ' reports are') + ' waiting for admin verification. You can still edit or delete ' + (pending === 1 ? 'it.' : 'them.');
+  $('pendNote').classList.toggle('hidden', !pending);
 
+  // which card?
+  const editing = editId && findTask(editId);
+  if (editId && (!editing || editing.verified || editing.status !== 'Submitted')) editId = null;
   clearInterval(tick);
-  if (s.open){
-    $('cLive').classList.remove('hidden'); $('cStart').classList.add('hidden');
-    $('liveTask').textContent = s.open.taskId;
-    $('liveSince').textContent = 'Started at ' + fmtTime(s.open.start);
-    if ($('fFinish').dataset.log !== s.open.logId){
-      $('fFinish').reset(); $('fFinish').dataset.log = s.open.logId;
-      $('inTaskId').value = s.open.taskId; updateHints();
+  const form = $('fResult');
+  if (editId){
+    const t = findTask(editId);
+    $('cForm').classList.remove('hidden'); $('cForm').classList.add('edit'); $('cStart').classList.add('hidden');
+    $('headLive').classList.add('hidden'); $('headEdit').classList.remove('hidden');
+    $('btnsLive').classList.add('hidden'); $('btnsEdit').classList.remove('hidden');
+    $('editTitle').textContent = 'Task ' + t.taskId + (t.type === 'Rework' ? ' · Rework' : '');
+    if (form.dataset.log !== t.logId){
+      form.dataset.log = t.logId;
+      $('inTaskId').value = t.taskId; $('inBatch').value = t.batch; $('inTaskName').value = t.taskName;
+      $('inVMs').value = t.validMs; $('inVIt').value = t.validItems; $('inIMs').value = t.invalidMs; $('inIIt').value = t.invalidItems;
+      $('inNotes').value = t.notes; updateHints();
     }
+  } else if (s.open){
+    $('cForm').classList.remove('hidden', 'edit'); $('cStart').classList.add('hidden');
+    $('headLive').classList.remove('hidden'); $('headEdit').classList.add('hidden');
+    $('btnsLive').classList.remove('hidden'); $('btnsEdit').classList.add('hidden');
+    $('liveTask').textContent = s.open.taskId;
+    $('liveRework').classList.toggle('hidden', s.open.type !== 'Rework');
+    $('liveSince').textContent = 'Started at ' + fmtTime(s.open.start);
+    if (form.dataset.log !== s.open.logId){ form.reset(); form.dataset.log = s.open.logId; $('inTaskId').value = s.open.taskId; updateHints(); }
     const t0 = new Date(s.open.start).getTime();
     const upd = () => { const d = Math.max(0, Math.floor((Date.now() - t0) / 1000));
       $('timer').textContent = pad(Math.floor(d/3600)) + ':' + pad(Math.floor(d%3600/60)) + ':' + pad(d%60); };
     upd(); tick = setInterval(upd, 1000);
   } else {
-    $('cLive').classList.add('hidden'); $('cStart').classList.remove('hidden');
-    $('startTitle').textContent = met ? 'Take another task' : (s.tasks.length ? 'Start your next task' : 'Start your first task');
+    form.dataset.log = '';
+    $('cForm').classList.add('hidden'); $('cStart').classList.remove('hidden');
+    $('startTitle').textContent = met ? 'Take another task' : (subm.length ? 'Start your next task' : 'Start a task');
     $('startSub').textContent = met
       ? 'You have reached today\'s minimum. Extra tasks are welcome.'
       : 'Complete at least ' + n(min) + ' audio items today. You can take as many tasks as you like.';
+    $('noDataBox').classList.toggle('hidden', !!noData);
+    $('noDataInfo').classList.toggle('hidden', !noData);
+    if (noData) $('noDataInfo').innerHTML = '<span>ⓘ</span><span>You reported <b>no data in the pool</b> at ' + fmtTime(noData.start) + '. If tasks appear later you can still start one.</span>';
   }
 
+  // list
   const ul = $('list');
-  if (!s.tasks.length){ ul.innerHTML = '<li class="empty">No tasks yet today.</li>'; }
-  else ul.innerHTML = s.tasks.slice().reverse().map(t => {
-    const live = t.status !== 'Completed';
-    const meta = [t.batch && 'Batch ' + esc(t.batch), esc(t.taskName)].filter(Boolean).join(' · ');
-    return '<li><div class="lt"><div><b>Task ' + esc(t.taskId) + '</b><span>' + (meta ? meta + ' · ' : '') +
-      fmtTime(t.start) + ' – ' + (t.end ? fmtTime(t.end) : 'now') + '</span></div>' +
-      '<span class="pill ' + (live ? 'InProgress' : 'Completed') + '">' + (live ? 'In Progress' : 'Completed') + '</span></div>' +
-      (live ? '' : '<div class="lm"><div>Valid<b>' + n(t.validMs) + ' ms</b>' + n(t.validItems) + ' items</div>' +
-        '<div>Invalid<b>' + n(t.invalidMs) + ' ms</b>' + n(t.invalidItems) + ' items</div>' +
-        '<div>Total<b>' + n(t.totalItems) + '</b>items</div></div>') + '</li>';
-  }).join('');
+  if (!s.tasks.length){ ul.innerHTML = '<li class="empty">No reports yet today.</li>'; }
+  else ul.innerHTML = s.tasks.slice().reverse().map(itemHtml).join('');
   show('vDash');
+}
+
+function itemHtml(t){
+  const rework = t.type === 'Rework' ? '<span class="tag">Rework</span>' : '';
+  let pill, body = '', acts = '';
+  if (t.status === 'No Data'){
+    pill = t.verified ? '<span class="pill ver">Verified</span>' : '<span class="pill nod">No data</span>';
+    return '<li><div class="lt"><div><b>No data in the pool</b><span class="meta">Reported at ' + fmtTime(t.start) + (t.notes && t.notes !== 'No data in the pool' ? ' · ' + esc(t.notes) : '') + '</span></div>' + pill + '</div>' +
+      (t.verified ? '<div class="locked">✓ Verified by admin</div>' : '<div class="acts"><button class="del" data-del="' + esc(t.logId) + '">Delete</button></div>') + '</li>';
+  }
+  if (t.status === 'In Progress'){
+    pill = '<span class="pill prog">In Progress</span>';
+    acts = '<div class="acts"><button class="del" data-del="' + esc(t.logId) + '">Delete task</button></div>';
+  } else {
+    pill = t.verified ? '<span class="pill ver">Verified</span>' : '<span class="pill pend">Pending review</span>';
+    body = '<div class="lm"><div>Valid<b>' + n(t.validMs) + ' ms</b>' + n(t.validItems) + ' items</div>' +
+      '<div>Invalid<b>' + n(t.invalidMs) + ' ms</b>' + n(t.invalidItems) + ' items</div>' +
+      '<div>Total<b>' + n(t.totalItems) + '</b>items</div></div>';
+    acts = t.verified ? '<div class="locked">✓ Verified by admin · locked</div>'
+      : '<div class="acts"><button data-edit="' + esc(t.logId) + '">Edit</button><button class="del" data-del="' + esc(t.logId) + '">Delete</button></div>';
+  }
+  const meta = [t.batch && 'Batch ' + esc(t.batch), esc(t.taskName)].filter(Boolean).join(' · ');
+  return '<li><div class="lt"><div><b>Task ' + esc(t.taskId) + '</b>' + rework + '<span class="meta">' + (meta ? meta + ' · ' : '') +
+    fmtTime(t.start) + ' – ' + (t.end ? fmtTime(t.end) : 'now') + '</span></div>' + pill + '</div>' + body + acts + '</li>';
 }
 
 function updateHints(){
@@ -369,16 +467,13 @@ function updateHints(){
 ['inVMs','inIMs','inVIt','inIIt'].forEach(id => $(id).addEventListener('input', updateHints));
 
 /* ---------- actions ---------- */
-function signOut(){ store.del(KEY); session = null; state = null; clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
+function signOut(){ store.del(KEY); session = null; state = null; editId = null; clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
 
-async function load(silent){
+async function load(withToast){
   session = store.get(KEY);
   if (!session){ show('vLogin'); return; }
-  try {
-    const s = await call('status', {});
-    if (!s.ok){ if (s.code === 'AUTH'){ signOut(); toast(s.error, true); return; } throw new Error(s.error); }
-    render(s); if (silent === 'toast') toast('Updated');
-  } catch(e){ if (!state) show('vLogin'); toast(e.message, true); }
+  try { render(await call('status', {})); if (withToast) toast('Updated'); }
+  catch(e){ if (!state && session) show('vLogin'); toast(e.message, true); }
 }
 
 $('btnEye').addEventListener('click', () => {
@@ -386,81 +481,125 @@ $('btnEye').addEventListener('click', () => {
   p.type = on ? 'text' : 'password'; $('btnEye').textContent = on ? 'Hide' : 'Show';
 });
 
-$('fLogin').addEventListener('submit', async e => {
-  e.preventDefault(); const f = e.target; busy(f, true);
-  const memberId = $('inId').value.trim().toUpperCase();
-  try {
+$('fLogin').addEventListener('submit', e => {
+  e.preventDefault();
+  withBusy(e.target.querySelector('[type=submit]'), async () => {
+    const memberId = $('inId').value.trim().toUpperCase();
     const s = await api('login', { memberId, password: $('inPass').value.trim() });
     if (!s.ok) throw new Error(s.error);
     session = { memberId, token: s.token }; store.set(KEY, session);
     render(s); toast('Welcome, ' + String(s.name).split(' ')[0]);
-  } catch(err){ toast(err.message || 'Could not sign in.', true); }
-  busy(f, false);
+  });
 });
 
-$('fStart').addEventListener('submit', async e => {
-  e.preventDefault(); const f = e.target; busy(f, true);
-  try {
-    const s = await call('start', { taskId: $('inTask').value.trim().toUpperCase() });
-    if (!s.ok){ if (s.code === 'AUTH'){ signOut(); } throw new Error(s.error); }
-    $('inTask').value = ''; render(s); toast('Task started. Good luck!');
-  } catch(err){ toast(err.message || 'Could not start the task.', true); }
-  busy(f, false);
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  startType = b.dataset.type;
+  document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  $('reworkNote').classList.toggle('hidden', startType !== 'Rework');
+  $('btnStart')._label = startType === 'Rework' ? 'Start Rework' : 'Start Task';
+  if (!$('btnStart').disabled) $('btnStart').innerHTML = $('btnStart')._label;
+}));
+
+$('fStart').addEventListener('submit', e => {
+  e.preventDefault();
+  const taskId = $('inTask').value.trim().toUpperCase();
+  if (!taskId){ toast('Please enter the Task ID.', true); $('inTask').focus(); return; }
+  withBusy($('btnStart'), async () => {
+    const s = await call('start', { taskId, type: startType });
+    const was = startType;
+    $('inTask').value = ''; document.querySelector('.seg [data-type=New]').click();
+    render(s); toast(was === 'Rework' ? 'Rework started.' : 'Task started. Good luck!');
+  });
 });
 
-$('fFinish').addEventListener('submit', async e => {
-  e.preventDefault(); const f = e.target;
+function readForm(){
   const v = id => $(id).value.trim();
   const need = [['inTaskId','Task ID'],['inBatch','Batch'],['inTaskName','Task Name'],['inVMs','Valid duration'],['inVIt','Valid items'],['inIMs','Invalid duration'],['inIIt','Invalid items']];
   const miss = need.find(([id]) => v(id) === '');
-  if (miss){ toast('Please fill in ' + miss[1] + '. Enter 0 if there is none.', true); $(miss[0]).focus(); return; }
+  if (miss){ toast('Please fill in ' + miss[1] + '. Enter 0 if there is none.', true); $(miss[0]).focus(); return null; }
   const nums = ['inVMs','inVIt','inIMs','inIIt'].map(id => Number(v(id)));
-  if (nums.some(x => !Number.isInteger(x) || x < 0)){ toast('Durations and items must be whole numbers.', true); return; }
-  const total = nums[1] + nums[3];
-  if (!confirm('Submit Task ' + v('inTaskId') + '?\n\nValid: ' + n(nums[0]) + ' ms / ' + n(nums[1]) + ' items\nInvalid: ' + n(nums[2]) + ' ms / ' + n(nums[3]) + ' items\nTotal: ' + n(total) + ' items\n\nPlease double-check with the platform.')) return;
-  busy(f, true);
-  try {
-    const s = await call('finish', {
-      logId: state.open.logId, taskId: v('inTaskId').toUpperCase(), batch: v('inBatch'), taskName: v('inTaskName'),
-      validMs: nums[0], validItems: nums[1], invalidMs: nums[2], invalidItems: nums[3], notes: v('inNotes')
+  if (nums.some(x => !Number.isInteger(x) || x < 0)){ toast('Durations and items must be whole numbers.', true); return null; }
+  return { taskId: v('inTaskId').toUpperCase(), batch: v('inBatch'), taskName: v('inTaskName'),
+    validMs: nums[0], validItems: nums[1], invalidMs: nums[2], invalidItems: nums[3], notes: v('inNotes') };
+}
+
+$('fResult').addEventListener('submit', e => {
+  e.preventDefault();
+  const d = readForm(); if (!d) return;
+  const isEdit = !!editId;
+  if (!confirm((isEdit ? 'Save changes to ' : 'Submit ') + 'Task ' + d.taskId + '?\n\nValid: ' + n(d.validMs) + ' ms / ' + n(d.validItems) + ' items\nInvalid: ' + n(d.invalidMs) + ' ms / ' + n(d.invalidItems) + ' items\nTotal: ' + n(d.validItems + d.invalidItems) + ' items\n\nPlease double-check with the platform.')) return;
+  const btn = e.submitter || e.target.querySelector(isEdit ? '#btnsEdit [type=submit]' : '#btnsLive [type=submit]');
+  withBusy(btn, async () => {
+    const s = await call(isEdit ? 'update' : 'finish', Object.assign({ logId: isEdit ? editId : state.open.logId }, d));
+    editId = null; $('fResult').dataset.log = ''; render(s); toast(isEdit ? 'Report updated.' : 'Task submitted! Waiting for admin verification.');
+  });
+});
+
+$('btnCancelEdit').addEventListener('click', () => { editId = null; $('fResult').dataset.log = ''; render(state); });
+
+$('list').addEventListener('click', e => {
+  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+  if (ed){
+    if (state.open){ toast('Submit or delete your task in progress before editing another report.', true); return; }
+    editId = ed.dataset.edit; render(state); $('cForm').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  if (del){
+    const t = findTask(del.dataset.del);
+    const what = t.status === 'In Progress' ? 'this task in progress' : t.status === 'No Data' ? 'this "no data" report' : 'the report for Task ' + t.taskId;
+    if (!confirm('Delete ' + what + '?\nThis cannot be undone.')) return;
+    withBusy(del, async () => {
+      const s = await call('remove', { logId: t.logId });
+      if (editId === t.logId) editId = null;
+      render(s); toast('Deleted.');
     });
-    if (!s.ok){ if (s.code === 'AUTH'){ signOut(); } throw new Error(s.error); }
-    f.dataset.log = ''; render(s); toast('Task submitted!');
-  } catch(err){ toast(err.message || 'Could not submit the task.', true); }
-  busy(f, false);
+  }
+});
+
+$('btnNoData').addEventListener('click', () => { $('btnNoData').classList.add('hidden'); $('noDataForm').classList.remove('hidden'); $('inNoDataNote').focus(); });
+$('btnNoDataCancel').addEventListener('click', () => { $('noDataForm').classList.add('hidden'); $('btnNoData').classList.remove('hidden'); });
+$('btnNoDataSend').addEventListener('click', e => {
+  withBusy(e.currentTarget, async () => {
+    const s = await call('nodata', { notes: $('inNoDataNote').value.trim() });
+    $('inNoDataNote').value = ''; $('noDataForm').classList.add('hidden'); $('btnNoData').classList.remove('hidden');
+    render(s); toast('Daily activity submitted.');
+  });
 });
 
 $('btnOut').addEventListener('click', () => {
   if (state && state.open && !confirm('You have a task in progress. Sign out anyway? The timer keeps running.')) return;
   signOut();
 });
-$('btnRefresh').addEventListener('click', () => load('toast'));
-document.addEventListener('visibilitychange', () => { if (!document.hidden && session) load(); });
+$('btnRefresh').addEventListener('click', () => load(true));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && session && !editId) load(); });
 
-/* ---------- demo mode (add ?demo to the URL to preview without the sheet) ---------- */
+/* ---------- demo mode (add ?demo to the URL) ---------- */
 function demo(action, d){
-  const db = store.get('so_demo_db_v3') || { log:[] };
-  const save = () => store.set('so_demo_db_v3', db);
+  const db = store.get('so_demo_db_v4') || { log:[] };
+  const save = () => store.set('so_demo_db_v4', db);
   const day = new Date().toDateString();
   const status = id => {
     const mine = db.log.filter(r => r.memberId === id);
     return { ok:true, memberId:id, name:'Demo Member', role:'TR', min:500,
       tasks: mine.filter(r => r.day === day), open: mine.find(r => r.status === 'In Progress') || null };
   };
+  const fill = (r, d) => Object.assign(r, { taskId:d.taskId, batch:d.batch, taskName:d.taskName, notes:d.notes,
+    validMs:+d.validMs, validItems:+d.validItems, invalidMs:+d.invalidMs, invalidItems:+d.invalidItems,
+    totalItems:+d.validItems + +d.invalidItems, status:'Submitted', verified:false });
   return new Promise(res => setTimeout(() => {
-    const id = d.memberId;
+    const id = d.memberId, err = m => res({ ok:false, error:m });
     if (action === 'login') return res(Object.assign(status(id), { token:'demo' }));
     if (action === 'status') return res(status(id));
     if (action === 'start'){
-      if (db.log.some(r => r.memberId === id && r.status === 'In Progress')) return res({ ok:false, error:'You already have a task in progress. Submit it before starting a new one.' });
-      db.log.push({ logId:'L'+Date.now(), day, memberId:id, taskId:d.taskId, start:new Date().toISOString(), status:'In Progress' });
+      if (db.log.some(r => r.memberId === id && r.status === 'In Progress')) return err('You already have a task in progress. Submit or delete it first.');
+      db.log.push({ logId:'L'+Date.now(), day, memberId:id, type:d.type, taskId:d.taskId, start:new Date().toISOString(), status:'In Progress' });
       save(); return res(status(id));
     }
-    if (action === 'finish'){
-      const r = db.log.find(x => x.logId === d.logId);
-      Object.assign(r, { taskId:d.taskId, batch:d.batch, taskName:d.taskName, end:new Date().toISOString(),
-        validMs:+d.validMs, validItems:+d.validItems, invalidMs:+d.invalidMs, invalidItems:+d.invalidItems,
-        totalItems:+d.validItems + +d.invalidItems, status:'Completed' });
+    const r = db.log.find(x => x.logId === d.logId);
+    if (action === 'finish'){ fill(r, d); r.end = new Date().toISOString(); save(); return res(status(id)); }
+    if (action === 'update'){ fill(r, d); save(); return res(status(id)); }
+    if (action === 'remove'){ db.log = db.log.filter(x => x.logId !== d.logId); save(); return res(status(id)); }
+    if (action === 'nodata'){
+      db.log.push({ logId:'L'+Date.now(), day, memberId:id, type:'No Data', start:new Date().toISOString(), end:new Date().toISOString(), status:'No Data', notes:d.notes, verified:false });
       save(); return res(status(id));
     }
   }, 300));
