@@ -129,6 +129,27 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .locked{margin-top:10px;font-size:12px;color:var(--ok)}
 .empty{color:var(--muted);font-size:14px;text-align:center;padding:16px 0 6px}
 
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;box-shadow:0 1px 2px rgba(15,30,46,.04)}
+.tabs button{border:0;background:none;border-radius:9px;padding:10px;font:600 14px Inter,sans-serif;color:var(--muted);cursor:pointer}
+.tabs button.on{background:var(--brand);color:#fff}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.kgrid .stat b{font-size:20px}
+.kgrid .stat.wide{grid-column:1/-1}
+.days{list-style:none;margin:8px 0 0;padding:0}
+.days>li{border-top:1px solid var(--line)}
+.days>li:first-child{border-top:0}
+.dayhead{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;padding:13px 0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.dayhead .dd{flex:1;min-width:0}
+.dayhead .dd b{display:block;font-size:14.5px}
+.dayhead .dd span{font-size:12.5px;color:var(--muted)}
+.dayhead .num{text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
+.dayhead .num b{display:block;font-size:14px}
+.dayhead .chev{color:var(--muted);transition:transform .2s;font-size:12px}
+.days>li.open .chev{transform:rotate(90deg)}
+.daybody{padding:0 0 10px 12px;border-left:2px solid var(--line);margin:0 0 8px 4px}
+.daybody .list li:first-child{padding-top:4px}
+.pill.met{background:var(--ok-soft);color:var(--ok)}
+.pill.low{background:var(--warn-soft);color:var(--warn)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .toast.err{background:var(--bad)}
@@ -188,9 +209,16 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
         </div>
         <button class="link" id="btnOut" type="button">Sign out</button>
       </div>
+    </section>
 
-      <div class="divider"></div>
-      <div style="margin-top:14px">
+    <div class="tabs" role="tablist">
+      <button type="button" class="on" data-tab="today">Today</button>
+      <button type="button" data-tab="all">All time</button>
+    </div>
+
+    <div class="stack" id="vToday">
+    <section class="card">
+      <div>
         <div class="row"><span class="eyebrow">Today's progress</span><span class="eyebrow" id="today"></span></div>
         <div class="big"><b id="items">0</b><span id="ofMin">/ 500 audio items minimum</span></div>
         <div class="bar" id="bar"><i></i></div>
@@ -293,6 +321,29 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
       </div>
       <ul class="list" id="list"></ul>
     </section>
+    </div>
+
+    <!-- All time -->
+    <div class="stack hidden" id="vAll">
+      <section class="card">
+        <div class="row"><span class="eyebrow">All time summary</span><button class="link" id="btnRefreshAll" type="button">Refresh</button></div>
+        <div class="kgrid">
+          <div class="stat"><small>Tasks submitted</small><b id="aTasks">0</b><em id="aRework"></em></div>
+          <div class="stat"><small>Audio items</small><b id="aItems">0</b></div>
+          <div class="stat"><small>Valid (ms)</small><b id="aValid">0</b><em id="aValidI"></em></div>
+          <div class="stat"><small>Invalid (ms)</small><b id="aInvalid">0</b><em id="aInvalidI"></em></div>
+          <div class="stat"><small>Days worked</small><b id="aDays">0</b></div>
+          <div class="stat"><small>Days target met</small><b id="aMet">0</b></div>
+          <div class="stat"><small>Verified</small><b id="aVer" style="color:var(--ok)">0</b><em>reports</em></div>
+          <div class="stat"><small>Pending review</small><b id="aPend" style="color:var(--warn)">0</b><em>reports</em></div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Daily history</h2>
+        <p class="sub">Tap a day to see its reports.</p>
+        <ul class="days" id="days"></ul>
+      </section>
+    </div>
   </div>
 </main>
 
@@ -308,6 +359,7 @@ const DEMO = !/^https:\/\/script\.google\.com\//.test(SCRIPT_URL) || new URLSear
 const KEY = 'so_idn1_session_v3';
 const $ = id => document.getElementById(id);
 let state = null, session = null, tick = null, editId = null, startType = 'New';
+let hist = null, tab = 'today', openDay = null, editFrom = 'today';
 
 const store = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
@@ -354,7 +406,8 @@ function msHint(ms){
   return '≈ ' + (h ? h + 'h ' : '') + m + 'm ' + sec + 's';
 }
 const roleName = r => r === 'TR' ? 'Transcriber · TR' : r === 'QA' ? 'Quality Assurance · QA' : r;
-const findTask = id => state && state.tasks.find(t => t.logId === id);
+const findTask = id => (state && state.tasks.find(t => t.logId === id)) || (hist && hist.tasks.find(t => t.logId === id));
+const fmtDay = k => new Date(k + 'T12:00:00').toLocaleDateString([], { weekday:'short', day:'numeric', month:'short', year:'numeric' });
 
 /* ---------- render ---------- */
 function render(s){
@@ -397,7 +450,7 @@ function render(s){
     $('cForm').classList.remove('hidden'); $('cForm').classList.add('edit'); $('cStart').classList.add('hidden');
     $('headLive').classList.add('hidden'); $('headEdit').classList.remove('hidden');
     $('btnsLive').classList.add('hidden'); $('btnsEdit').classList.remove('hidden');
-    $('editTitle').textContent = 'Task ' + t.taskId + (t.type === 'Rework' ? ' · Rework' : '');
+    $('editTitle').textContent = 'Task ' + t.taskId + (t.type === 'Rework' ? ' · Rework' : '') + (t.day && t.day !== s.date ? ' · ' + fmtDay(t.day) : '');
     if (form.dataset.log !== t.logId){
       form.dataset.log = t.logId;
       $('inTaskId').value = t.taskId; $('inBatch').value = t.batch; $('inTaskName').value = t.taskName;
@@ -459,6 +512,60 @@ function itemHtml(t){
     fmtTime(t.start) + ' – ' + (t.end ? fmtTime(t.end) : 'now') + '</span></div>' + pill + '</div>' + body + acts + '</li>';
 }
 
+/* ---------- All time ---------- */
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('vToday').classList.toggle('hidden', t !== 'today');
+  $('vAll').classList.toggle('hidden', t !== 'all');
+  if (t === 'all') loadHistory();
+}
+async function loadHistory(withToast){
+  if (!hist) $('days').innerHTML = '<li class="empty">Loading…</li>';
+  try { hist = await call('history', {}); renderHistory(); if (withToast) toast('Updated'); }
+  catch(e){ toast(e.message, true); }
+}
+function renderHistory(){
+  const min = hist.min || 500;
+  const subm = hist.tasks.filter(t => t.status === 'Submitted');
+  const sum = (arr, k) => arr.reduce((a,t) => a + (t[k] || 0), 0);
+  const byDay = {};
+  hist.tasks.forEach(t => (byDay[t.day] = byDay[t.day] || []).push(t));
+  const keys = Object.keys(byDay).sort().reverse();
+  const dayItems = k => sum(byDay[k].filter(t => t.status === 'Submitted'), 'totalItems');
+  const worked = keys.filter(k => byDay[k].some(t => t.status === 'Submitted'));
+
+  $('aTasks').textContent = n(subm.length);
+  const rw = subm.filter(t => t.type === 'Rework').length;
+  $('aRework').textContent = rw ? rw + ' rework' : '';
+  $('aItems').textContent = n(sum(subm, 'totalItems'));
+  $('aValid').textContent = n(sum(subm, 'validMs'));   $('aValidI').textContent = n(sum(subm, 'validItems')) + ' items';
+  $('aInvalid').textContent = n(sum(subm, 'invalidMs')); $('aInvalidI').textContent = n(sum(subm, 'invalidItems')) + ' items';
+  $('aDays').textContent = worked.length;
+  $('aMet').textContent = worked.filter(k => dayItems(k) >= min).length;
+  $('aVer').textContent = subm.filter(t => t.verified).length;
+  $('aPend').textContent = subm.filter(t => !t.verified).length;
+
+  if (!keys.length){ $('days').innerHTML = '<li class="empty">No reports yet.</li>'; return; }
+  $('days').innerHTML = keys.map(k => {
+    const list = byDay[k], ds = list.filter(t => t.status === 'Submitted'), items = dayItems(k);
+    const nod = list.some(t => t.status === 'No Data');
+    const pill = ds.length ? (items >= min ? '<span class="pill met">Target met</span>' : '<span class="pill low">Below target</span>') : (nod ? '<span class="pill nod">No data</span>' : '');
+    const isOpen = openDay === k;
+    return '<li class="' + (isOpen ? 'open' : '') + '"><button class="dayhead" data-day="' + k + '">' +
+      '<div class="dd"><b>' + (k === hist.today ? 'Today · ' : '') + fmtDay(k) + '</b><span>' + ds.length + ' task' + (ds.length === 1 ? '' : 's') + ' · ' + pill + '</span></div>' +
+      '<div class="num"><b>' + n(items) + '</b>items</div><span class="chev">▶</span></button>' +
+      (isOpen ? '<div class="daybody"><ul class="list">' + list.slice().reverse().map(itemHtml).join('') + '</ul></div>' : '') + '</li>';
+  }).join('');
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+$('btnRefreshAll').addEventListener('click', () => loadHistory(true));
+$('days').addEventListener('click', e => {
+  const h = e.target.closest('.dayhead');
+  if (h){ openDay = openDay === h.dataset.day ? null : h.dataset.day; renderHistory(); return; }
+  listAction(e);
+});
+
 function updateHints(){
   $('hVMs').textContent = msHint($('inVMs').value);
   $('hIMs').textContent = msHint($('inIMs').value);
@@ -467,7 +574,7 @@ function updateHints(){
 ['inVMs','inIMs','inVIt','inIIt'].forEach(id => $(id).addEventListener('input', updateHints));
 
 /* ---------- actions ---------- */
-function signOut(){ store.del(KEY); session = null; state = null; editId = null; clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
+function signOut(){ store.del(KEY); session = null; state = null; editId = null; hist = null; openDay = null; setTab('today'); clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
 
 async function load(withToast){
   session = store.get(KEY);
@@ -531,17 +638,20 @@ $('fResult').addEventListener('submit', e => {
   const btn = e.submitter || e.target.querySelector(isEdit ? '#btnsEdit [type=submit]' : '#btnsLive [type=submit]');
   withBusy(btn, async () => {
     const s = await call(isEdit ? 'update' : 'finish', Object.assign({ logId: isEdit ? editId : state.open.logId }, d));
-    editId = null; $('fResult').dataset.log = ''; render(s); toast(isEdit ? 'Report updated.' : 'Task submitted! Waiting for admin verification.');
+    editId = null; $('fResult').dataset.log = ''; hist = null; render(s); toast(isEdit ? 'Report updated.' : 'Task submitted! Waiting for admin verification.');
   });
 });
 
 $('btnCancelEdit').addEventListener('click', () => { editId = null; $('fResult').dataset.log = ''; render(state); });
+$('btnCancelEdit').addEventListener('click', () => { if (editFrom === 'all') setTab('all'); });
 
-$('list').addEventListener('click', e => {
+$('list').addEventListener('click', listAction);
+function listAction(e){
   const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
   if (ed){
     if (state.open){ toast('Submit or delete your task in progress before editing another report.', true); return; }
-    editId = ed.dataset.edit; render(state); $('cForm').scrollIntoView({ behavior:'smooth', block:'start' });
+    editId = ed.dataset.edit; editFrom = tab; if (tab !== 'today') setTab('today');
+    render(state); $('cForm').scrollIntoView({ behavior:'smooth', block:'start' });
   }
   if (del){
     const t = findTask(del.dataset.del);
@@ -551,9 +661,10 @@ $('list').addEventListener('click', e => {
       const s = await call('remove', { logId: t.logId });
       if (editId === t.logId) editId = null;
       render(s); toast('Deleted.');
+      if (hist){ hist.tasks = hist.tasks.filter(x => x.logId !== t.logId); if (tab === 'all') renderHistory(); }
     });
   }
-});
+}
 
 $('btnNoData').addEventListener('click', () => { $('btnNoData').classList.add('hidden'); $('noDataForm').classList.remove('hidden'); $('inNoDataNote').focus(); });
 $('btnNoDataCancel').addEventListener('click', () => { $('noDataForm').classList.add('hidden'); $('btnNoData').classList.remove('hidden'); });
@@ -589,6 +700,16 @@ function demo(action, d){
     const id = d.memberId, err = m => res({ ok:false, error:m });
     if (action === 'login') return res(Object.assign(status(id), { token:'demo' }));
     if (action === 'status') return res(status(id));
+    if (action === 'history'){
+      const seed = [
+        { logId:'H1', day:'2026-10-13', type:'New', taskId:'274640', batch:'943', taskName:'batch_01', start:'2026-10-13T04:00:00Z', end:'2026-10-13T09:00:00Z', validMs:510980, validItems:91, invalidMs:5919, invalidItems:2, totalItems:93, status:'Submitted', verified:true },
+        { logId:'H2', day:'2026-10-14', type:'New', taskId:'274767', batch:'945', taskName:'batch_03', start:'2026-10-14T04:00:00Z', end:'2026-10-14T10:00:00Z', validMs:1116952, validItems:374, invalidMs:552466, invalidItems:126, totalItems:500, status:'Submitted', verified:true },
+        { logId:'H3', day:'2026-10-14', type:'Rework', taskId:'274640', batch:'943', taskName:'batch_01', start:'2026-10-14T11:00:00Z', end:'2026-10-14T12:00:00Z', validMs:300000, validItems:80, invalidMs:0, invalidItems:0, totalItems:80, status:'Submitted', verified:false }
+      ];
+      const today = new Date().toISOString().slice(0,10);
+      const mine = db.log.filter(r => r.memberId === id && r.status !== 'In Progress').map(r => Object.assign({}, r, { day: today }));
+      return res({ ok:true, today, min:500, tasks: seed.concat(mine).reverse() });
+    }
     if (action === 'start'){
       if (db.log.some(r => r.memberId === id && r.status === 'In Progress')) return err('You already have a task in progress. Submit or delete it first.');
       db.log.push({ logId:'L'+Date.now(), day, memberId:id, type:d.type, taskId:d.taskId, start:new Date().toISOString(), status:'In Progress' });
