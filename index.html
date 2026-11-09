@@ -533,6 +533,7 @@ function renderHistory(){
   hist.tasks.forEach(t => (byDay[t.day] = byDay[t.day] || []).push(t));
   const keys = Object.keys(byDay).sort().reverse();
   const dayItems = k => sum(byDay[k].filter(t => t.status === 'Submitted'), 'totalItems');
+  const minOf = k => (hist.mins && hist.mins[k]) || min;
   const worked = keys.filter(k => byDay[k].some(t => t.status === 'Submitted'));
 
   $('aTasks').textContent = n(subm.length);
@@ -542,7 +543,7 @@ function renderHistory(){
   $('aValid').textContent = n(sum(subm, 'validMs'));   $('aValidI').textContent = n(sum(subm, 'validItems')) + ' items';
   $('aInvalid').textContent = n(sum(subm, 'invalidMs')); $('aInvalidI').textContent = n(sum(subm, 'invalidItems')) + ' items';
   $('aDays').textContent = worked.length;
-  $('aMet').textContent = worked.filter(k => dayItems(k) >= min).length;
+  $('aMet').textContent = worked.filter(k => dayItems(k) >= minOf(k)).length;
   $('aVer').textContent = subm.filter(t => t.verified).length;
   $('aPend').textContent = subm.filter(t => !t.verified).length;
 
@@ -550,7 +551,7 @@ function renderHistory(){
   $('days').innerHTML = keys.map(k => {
     const list = byDay[k], ds = list.filter(t => t.status === 'Submitted'), items = dayItems(k);
     const nod = list.some(t => t.status === 'No Data');
-    const pill = ds.length ? (items >= min ? '<span class="pill met">Target met</span>' : '<span class="pill low">Below target</span>') : (nod ? '<span class="pill nod">No data</span>' : '');
+    const pill = ds.length ? (items >= minOf(k) ? '<span class="pill met">Target met</span>' : '<span class="pill low">Below target</span>') : (nod ? '<span class="pill nod">No data</span>' : '');
     const isOpen = openDay === k;
     return '<li class="' + (isOpen ? 'open' : '') + '"><button class="dayhead" data-day="' + k + '">' +
       '<div class="dd"><b>' + (k === hist.today ? 'Today · ' : '') + fmtDay(k) + '</b><span>' + ds.length + ' task' + (ds.length === 1 ? '' : 's') + ' · ' + pill + '</span></div>' +
