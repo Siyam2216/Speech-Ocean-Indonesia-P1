@@ -242,7 +242,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
       </div>
     </section>
 
-    <div class="tabs" role="tablist">
+    <div class="tabs" role="tablist" id="tabBar">
       <button type="button" class="on" data-tab="today">Today</button>
       <button type="button" data-tab="all">All time</button>
       <button type="button" data-tab="qa" class="hidden">QA Board</button>
@@ -367,7 +367,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
       </section>
       <section class="card">
         <div class="row"><h2>My tasks</h2><span class="eyebrow" id="qMineCount"></span></div>
-        <p class="sub" id="qMineSub">Tasks you claimed. Mark them done when finished.</p>
+        <p class="sub" id="qMineSub">Claim a task → Task ID is copied → open Speech Ocean, search the Task ID and do the QA there → come back and Mark done.</p>
         <ul class="qlist" id="qMine"></ul>
       </section>
       <section class="card">
@@ -420,6 +420,7 @@ const KEY = 'so_idn1_session_v3';
 const $ = id => document.getElementById(id);
 let state = null, session = null, tick = null, editId = null, startType = 'New';
 let hist = null, tab = 'today', openDay = null, editFrom = 'today';
+const SO_URL = 'http://47.91.219.215:9630/';
 let qState = null, qPoll = null, qTick = null, qShown = 40, qOpenDone = null, qBusy = false, qLastOk = 0, qDefaulted = false;
 
 const store = {
@@ -487,8 +488,9 @@ function render(s){
   $('pRole').classList.toggle('hidden', !s.role);
   const isQa = s.role === 'QA';
   document.querySelector('.tabs [data-tab=qa]').classList.toggle('hidden', !isQa);
+  $('tabBar').classList.toggle('hidden', isQa);   // QA only sees the QA Board
   if (!isQa && tab === 'qa') setTab('today');
-  if (isQa && !qDefaulted){ qDefaulted = true; setTimeout(() => setTab('qa'), 0); }
+  if (isQa && (!qDefaulted || tab !== 'qa')){ qDefaulted = true; setTimeout(() => setTab('qa'), 0); }
   $('today').textContent = new Date().toLocaleDateString([], { day:'numeric', month:'short' });
 
   $('items').textContent = n(items);
@@ -579,6 +581,7 @@ function itemHtml(t){
 
 /* ---------- All time ---------- */
 function setTab(t){
+  if (session && state && state.role === 'QA') t = 'qa';
   tab = t;
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   $('vToday').classList.toggle('hidden', t !== 'today');
@@ -809,8 +812,9 @@ function qRenderMine(){
         ? '<div class="qdone"><label for="qn_' + esc(t.logId) + '" style="margin-top:0">QA note <span class="opt">(optional)</span></label>' +
           '<textarea id="qn_' + esc(t.logId) + '" placeholder="Anything the admin should know?"></textarea>' +
           '<div class="qacts"><button class="qbtn green" data-qconfirm="' + esc(t.logId) + '">Confirm done</button><button class="qbtn ghost" data-qcancel="1">Cancel</button></div></div>'
-        : '<div class="qacts"><button class="qbtn soft" data-qcopy="' + esc(t.trId) + '">Copy TR ID</button>' +
-          '<button class="qbtn ghost" data-qreport="' + esc(t.taskId) + '">Start work timer</button>' +
+        : '<div class="qacts"><button class="qbtn soft" data-qcopy="' + esc(t.taskId) + '">Copy Task ID</button>' +
+          '<button class="qbtn soft" data-qcopy="' + esc(t.trId) + '">Copy TR ID</button>' +
+          '<a class="qbtn" href="' + SO_URL + '" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center">Open Speech Ocean</a>' +
           '<button class="qbtn green" data-qdone="' + esc(t.logId) + '">Mark done</button>' +
           '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button></div>') +
       '</li>';
@@ -848,13 +852,13 @@ function qStamp(){
 $('vQa').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset;
-  if (d.qcopy) qCopy(d.qcopy).then(ok => toast(ok ? 'TR ID ' + d.qcopy + ' copied' : 'Could not copy. TR ID: ' + d.qcopy, !ok));
+  if (d.qcopy) qCopy(d.qcopy).then(ok => toast(ok ? d.qcopy + ' copied' : 'Could not copy: ' + d.qcopy, !ok));
   else if (d.qclaim){
-    const t = qFind(d.qclaim), copying = t ? qCopy(t.trId) : Promise.resolve(false);
+    const t = qFind(d.qclaim), copying = t ? qCopy(t.taskId) : Promise.resolve(false);
     qBusyBtn(b, async () => {
       const s = await call('qa_claim', { logId: d.qclaim }); const ok = await copying; qRender(s);
-      const id = (s.claimed && s.claimed.trId) || (t && t.trId);
-      toast('Claimed task ' + (s.claimed ? s.claimed.taskId : '') + (ok ? ' · TR ID ' + id + ' copied' : ' · TR ID ' + id));
+      const id = (s.claimed && s.claimed.taskId) || (t && t.taskId);
+      toast('Claimed task ' + id + (ok ? ' · Task ID copied. Search it on Speech Ocean.' : ''));
     });
   }
   else if (d.qdone){ qOpenDone = d.qdone; qRenderMine(); const ta = $('qn_' + qOpenDone); if (ta) ta.focus(); }
@@ -867,10 +871,6 @@ $('vQa').addEventListener('click', e => {
     const t = qFind(d.qrelease);
     if (!confirm('Release task ' + (t ? t.taskId : '') + '? It will go back to Available tasks.')) return;
     qBusyBtn(b, async () => { const s = await call('qa_release', { logId: d.qrelease }); if (qOpenDone === d.qrelease) qOpenDone = null; qRender(s); toast('Task released.'); });
-  }
-  else if (d.qreport){
-    if (state && state.open){ toast('You already have a work timer running (Task ' + state.open.taskId + '). Submit it first.', true); setTab('today'); return; }
-    qBusyBtn(b, async () => { const s = await call('start', { taskId: d.qreport, type: 'New' }); render(s); setTab('today'); toast('Work timer started for Task ' + d.qreport + '.'); });
   }
 });
 $('qSearch').addEventListener('input', () => { qShown = 40; if (qState) qRenderAvail(); });
