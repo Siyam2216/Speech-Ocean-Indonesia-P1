@@ -129,7 +129,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .locked{margin-top:10px;font-size:12px;color:var(--ok)}
 .empty{color:var(--muted);font-size:14px;text-align:center;padding:16px 0 6px}
 
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;box-shadow:0 1px 2px rgba(15,30,46,.04)}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;box-shadow:0 1px 2px rgba(15,30,46,.04)}
 .tabs button{border:0;background:none;border-radius:9px;padding:10px;font:600 14px Inter,sans-serif;color:var(--muted);cursor:pointer}
 .tabs button.on{background:var(--brand);color:#fff}
 .kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
@@ -159,6 +159,37 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .loading .spin{border-color:var(--line);border-top-color:var(--brand);width:22px;height:22px;margin-bottom:10px}
 footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px}
 .hidden{display:none!important}
+/* QA board */
+.qstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.qtask{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+.qtask.mine{border-color:#D8C6F0;background:linear-gradient(180deg,#FBF8FF 0%,#fff 60%)}
+.qtask.soon{border-color:#F0D9A8;background:linear-gradient(180deg,#FFFBF1 0%,#fff 60%)}
+.qlist{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.qhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.qtid{font-size:15.5px;font-weight:700}
+.qtr{font-size:13px;color:var(--muted);margin-top:2px}
+.qtr b{color:var(--ink);font-weight:600}
+.qmeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.qmeta div{font-size:11.5px;color:var(--muted);min-width:0}
+.qmeta div b{display:block;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.qbtn{border:0;border-radius:8px;padding:8px 12px;font:600 13px Inter,sans-serif;cursor:pointer;background:var(--violet);color:#fff;display:inline-flex;align-items:center;gap:6px}
+.qbtn.soft{background:var(--violet-soft);color:var(--violet)}
+.qbtn.green{background:var(--ok)}
+.qbtn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.qbtn:disabled{opacity:.6;cursor:wait}
+.qbtn .spin{width:13px;height:13px}
+.qbtn.soft .spin,.qbtn.ghost .spin{border-color:var(--line);border-top-color:var(--violet)}
+.qtimer{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--info-soft);color:var(--info);white-space:nowrap}
+.qtimer.soon{background:var(--warn-soft);color:var(--warn)}
+.qage{font-size:12px;color:var(--muted);white-space:nowrap}
+.qdone{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.qdone textarea{width:100%;min-height:60px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);resize:vertical}
+.qsearch{margin-top:12px}
+.qrecent li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.qrecent li:first-child{border-top:0}
+.qrecent span.m{display:block;font-size:12.5px;color:var(--muted)}
+.tabs button[data-tab=qa].on{background:var(--violet)}
 @media (max-width:380px){ .grid2{grid-template-columns:1fr} .stat{padding:9px 10px} }
 </style>
 </head>
@@ -214,6 +245,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
     <div class="tabs" role="tablist">
       <button type="button" class="on" data-tab="today">Today</button>
       <button type="button" data-tab="all">All time</button>
+      <button type="button" data-tab="qa" class="hidden">QA Board</button>
     </div>
 
     <div class="stack" id="vToday">
@@ -323,6 +355,34 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
     </section>
     </div>
 
+    <!-- QA Board (QA members only) -->
+    <div class="stack hidden" id="vQa">
+      <section class="card">
+        <div class="row"><span class="eyebrow">QA Board</span><span class="eyebrow" id="qUpdated">—</span></div>
+        <div class="qstats">
+          <div class="stat"><small>Waiting</small><b id="qWait">0</b><em>TR tasks</em></div>
+          <div class="stat"><small>In progress</small><b id="qProg">0</b><em id="qProgMine">0 by me</em></div>
+          <div class="stat"><small>Done by me</small><b id="qDone">0</b><em id="qDoneTotal">today</em></div>
+        </div>
+      </section>
+      <section class="card">
+        <div class="row"><h2>My tasks</h2><span class="eyebrow" id="qMineCount"></span></div>
+        <p class="sub" id="qMineSub">Tasks you claimed. Mark them done when finished.</p>
+        <ul class="qlist" id="qMine"></ul>
+      </section>
+      <section class="card">
+        <div class="row"><h2>Available tasks</h2><button class="link" id="qRefresh" type="button">Refresh</button></div>
+        <p class="sub">Submitted by our TRs, oldest first. Claiming copies the TR ID.</p>
+        <input class="qsearch" id="qSearch" type="search" placeholder="Search by Task ID or TR ID" autocomplete="off">
+        <ul class="qlist" id="qAvail"></ul>
+        <div class="hidden" id="qMoreBox" style="text-align:center;margin-top:12px"><button class="qbtn ghost" id="qMore" type="button">Show more</button></div>
+      </section>
+      <section class="card">
+        <h2>Recently done by me</h2>
+        <ul class="list qrecent" id="qRecent"></ul>
+      </section>
+    </div>
+
     <!-- All time -->
     <div class="stack hidden" id="vAll">
       <section class="card">
@@ -360,6 +420,7 @@ const KEY = 'so_idn1_session_v3';
 const $ = id => document.getElementById(id);
 let state = null, session = null, tick = null, editId = null, startType = 'New';
 let hist = null, tab = 'today', openDay = null, editFrom = 'today';
+let qState = null, qPoll = null, qTick = null, qShown = 40, qOpenDone = null, qBusy = false, qLastOk = 0, qDefaulted = false;
 
 const store = {
   get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
@@ -424,6 +485,10 @@ function render(s){
   $('pId').textContent = 'ID ' + s.memberId;
   $('pRole').textContent = roleName(s.role || '');
   $('pRole').classList.toggle('hidden', !s.role);
+  const isQa = s.role === 'QA';
+  document.querySelector('.tabs [data-tab=qa]').classList.toggle('hidden', !isQa);
+  if (!isQa && tab === 'qa') setTab('today');
+  if (isQa && !qDefaulted){ qDefaulted = true; setTimeout(() => setTab('qa'), 0); }
   $('today').textContent = new Date().toLocaleDateString([], { day:'numeric', month:'short' });
 
   $('items').textContent = n(items);
@@ -518,7 +583,9 @@ function setTab(t){
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   $('vToday').classList.toggle('hidden', t !== 'today');
   $('vAll').classList.toggle('hidden', t !== 'all');
+  $('vQa').classList.toggle('hidden', t !== 'qa');
   if (t === 'all') loadHistory();
+  if (t === 'qa') { qLoad(); qStart(); } else qStop();
 }
 async function loadHistory(withToast){
   if (!hist) $('days').innerHTML = '<li class="empty">Loading…</li>';
@@ -575,7 +642,7 @@ function updateHints(){
 ['inVMs','inIMs','inVIt','inIIt'].forEach(id => $(id).addEventListener('input', updateHints));
 
 /* ---------- actions ---------- */
-function signOut(){ store.del(KEY); session = null; state = null; editId = null; hist = null; openDay = null; setTab('today'); clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
+function signOut(){ store.del(KEY); session = null; state = null; editId = null; hist = null; openDay = null; qState = null; qDefaulted = false; setTab('today'); clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
 
 async function load(withToast){
   session = store.get(KEY);
@@ -682,7 +749,133 @@ $('btnOut').addEventListener('click', () => {
   signOut();
 });
 $('btnRefresh').addEventListener('click', () => load(true));
-document.addEventListener('visibilitychange', () => { if (!document.hidden && session && !editId) load(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && session && !editId) load(); if (!document.hidden && tab === 'qa' && !qBusy && !qOpenDone) qLoad(true); });
+
+
+/* ---------- QA Board (Role = QA) ---------- */
+const QA_REFRESH = 30;
+function qDur(ms){ ms = Math.max(0, ms); const m = Math.floor(ms/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+  return d ? d + 'd ' + (h%24) + 'h' : h ? h + 'h ' + (m%60) + 'm' : m + 'm'; }
+const qDT = iso => iso ? new Date(iso).toLocaleString([], { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }) : '—';
+async function qCopy(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch(e){ const ta = document.createElement('textarea'); ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch(_){} ta.remove(); return ok; }
+}
+const qFind = id => qState && (qState.mine.find(t => t.logId === id) || qState.available.find(t => t.logId === id));
+async function qBusyBtn(btn, fn){
+  if (!btn._label) btn._label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Wait'; qBusy = true;
+  try { await fn(); } catch(err){ toast(err.message || 'Something went wrong.', true); }
+  qBusy = false; if (document.body.contains(btn)){ btn.disabled = false; btn.innerHTML = btn._label; }
+}
+function qStart(){ qStop(); qPoll = setInterval(() => { if (!document.hidden && !qBusy && !qOpenDone) qLoad(true); }, QA_REFRESH*1000); qTick = setInterval(qStamp, 1000); }
+function qStop(){ clearInterval(qPoll); clearInterval(qTick); qPoll = qTick = null; }
+async function qLoad(silent){
+  if (!session) return;
+  if (!qState) $('qAvail').innerHTML = '<li class="empty">Loading…</li>';
+  try { qRender(await call('qa_board', {})); if (silent === 'toast') toast('Updated'); }
+  catch(e){ if (silent !== true) toast(e.message, true); }
+}
+function qRender(s){
+  qState = s; qLastOk = Date.now();
+  $('qWait').textContent = n(s.stats.waiting);
+  $('qProg').textContent = n(s.stats.inProgress); $('qProgMine').textContent = n(s.stats.inProgressMine) + ' by me';
+  $('qDone').textContent = n(s.stats.doneToday); $('qDoneTotal').textContent = 'today · ' + n(s.stats.doneTotal) + ' total';
+  $('qMineSub').textContent = 'Tasks you claimed. Unfinished claims are released after ' + s.claimHours + ' hours.';
+  $('qMineCount').textContent = s.mine.length ? s.mine.length + ' claimed' : '';
+  qRenderMine(); qRenderAvail(); qRenderRecent(); qStamp();
+}
+function qMeta(t){
+  return '<div class="qmeta"><div>Submitted<b>' + qDT(t.submitted) + '</b></div>' +
+    '<div>Audio items<b>' + n(t.totalItems) + '</b></div>' +
+    '<div>Valid / Invalid<b>' + n(t.validItems) + ' / ' + n(t.invalidItems) + '</b></div></div>';
+}
+function qHead(t, right){
+  return '<div class="qhead"><div><div class="qtid">Task ' + esc(t.taskId) + (t.type === 'Rework' ? '<span class="tag">Rework</span>' : '') + '</div>' +
+    '<div class="qtr">TR <b>' + esc(t.trId) + '</b>' + (t.trName ? ' · ' + esc(t.trName) : '') +
+    ([t.batch && 'Batch ' + t.batch, t.taskName].filter(Boolean).length ? ' · ' + esc([t.batch && 'Batch ' + t.batch, t.taskName].filter(Boolean).join(' · ')) : '') +
+    '</div></div>' + right + '</div>';
+}
+function qRenderMine(){
+  const ul = $('qMine');
+  if (!qState.mine.length){ ul.innerHTML = '<li class="empty">No claimed tasks. Claim one from Available tasks below.</li>'; return; }
+  ul.innerHTML = qState.mine.map(t => {
+    const left = new Date(t.expiresAt).getTime() - Date.now(), soon = left < 3600000, open = qOpenDone === t.logId;
+    return '<li class="qtask mine' + (soon ? ' soon' : '') + '">' +
+      qHead(t, '<span class="qtimer' + (soon ? ' soon' : '') + '" data-exp="' + esc(t.expiresAt) + '">' + (left > 0 ? 'Releases in ' + qDur(left) : 'Releasing…') + '</span>') +
+      qMeta(t) + '<div class="qtr" style="margin-top:8px">Claimed ' + qDT(t.claimedAt) + '</div>' +
+      (open
+        ? '<div class="qdone"><label for="qn_' + esc(t.logId) + '" style="margin-top:0">QA note <span class="opt">(optional)</span></label>' +
+          '<textarea id="qn_' + esc(t.logId) + '" placeholder="Anything the admin should know?"></textarea>' +
+          '<div class="qacts"><button class="qbtn green" data-qconfirm="' + esc(t.logId) + '">Confirm done</button><button class="qbtn ghost" data-qcancel="1">Cancel</button></div></div>'
+        : '<div class="qacts"><button class="qbtn soft" data-qcopy="' + esc(t.trId) + '">Copy TR ID</button>' +
+          '<button class="qbtn ghost" data-qreport="' + esc(t.taskId) + '">Start work timer</button>' +
+          '<button class="qbtn green" data-qdone="' + esc(t.logId) + '">Mark done</button>' +
+          '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button></div>') +
+      '</li>';
+  }).join('');
+}
+function qRenderAvail(){
+  const q = $('qSearch').value.trim().toUpperCase(), all = qState.available;
+  const list = q ? all.filter(t => String(t.taskId).toUpperCase().includes(q) || String(t.trId).toUpperCase().includes(q)) : all;
+  const ul = $('qAvail');
+  if (!list.length){
+    ul.innerHTML = '<li class="empty">' + (q ? 'No available task matches "' + esc(q) + '".' : 'No TR tasks waiting right now. New TR submissions appear here automatically.') + '</li>';
+    $('qMoreBox').classList.add('hidden'); return;
+  }
+  ul.innerHTML = list.slice(0, qShown).map(t =>
+    '<li class="qtask">' + qHead(t, '<span class="qage">waiting ' + (t.submitted ? qDur(Date.now() - new Date(t.submitted).getTime()) : '—') + '</span>') +
+    qMeta(t) + '<div class="qacts"><button class="qbtn" data-qclaim="' + esc(t.logId) + '">Claim task</button></div></li>').join('');
+  const rest = list.length - Math.min(qShown, list.length);
+  $('qMoreBox').classList.toggle('hidden', rest <= 0);
+  $('qMore').textContent = 'Show more (' + n(rest) + ' left)';
+}
+function qRenderRecent(){
+  const ul = $('qRecent');
+  if (!qState.recent.length){ ul.innerHTML = '<li class="empty" style="display:block">Nothing done yet.</li>'; return; }
+  ul.innerHTML = qState.recent.map(t => '<li><div><b>Task ' + esc(t.taskId) + '</b><span class="m">TR ' + esc(t.trId) +
+    ' · done ' + qDT(t.doneAt) + (t.note ? ' · ' + esc(t.note) : '') + '</span></div><span class="pill ver">Done</span></li>').join('');
+}
+function qStamp(){
+  const age = Math.round((Date.now() - qLastOk) / 1000);
+  $('qUpdated').textContent = !qLastOk ? '—' : age < 5 ? 'Updated just now' : 'Updated ' + (age < 60 ? age + 's' : Math.floor(age/60) + 'm') + ' ago';
+  document.querySelectorAll('#qMine [data-exp]').forEach(x => {
+    const left = new Date(x.dataset.exp).getTime() - Date.now();
+    x.textContent = left > 0 ? 'Releases in ' + qDur(left) : 'Releasing…'; x.classList.toggle('soon', left < 3600000);
+  });
+}
+$('vQa').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.qcopy) qCopy(d.qcopy).then(ok => toast(ok ? 'TR ID ' + d.qcopy + ' copied' : 'Could not copy. TR ID: ' + d.qcopy, !ok));
+  else if (d.qclaim){
+    const t = qFind(d.qclaim), copying = t ? qCopy(t.trId) : Promise.resolve(false);
+    qBusyBtn(b, async () => {
+      const s = await call('qa_claim', { logId: d.qclaim }); const ok = await copying; qRender(s);
+      const id = (s.claimed && s.claimed.trId) || (t && t.trId);
+      toast('Claimed task ' + (s.claimed ? s.claimed.taskId : '') + (ok ? ' · TR ID ' + id + ' copied' : ' · TR ID ' + id));
+    });
+  }
+  else if (d.qdone){ qOpenDone = d.qdone; qRenderMine(); const ta = $('qn_' + qOpenDone); if (ta) ta.focus(); }
+  else if (d.qcancel){ qOpenDone = null; qRenderMine(); }
+  else if (d.qconfirm){
+    const id = d.qconfirm, note = ($('qn_' + id) || {}).value || '';
+    qBusyBtn(b, async () => { const s = await call('qa_done', { logId: id, note: note.trim() }); qOpenDone = null; qRender(s); toast('Marked done. Thank you!'); });
+  }
+  else if (d.qrelease){
+    const t = qFind(d.qrelease);
+    if (!confirm('Release task ' + (t ? t.taskId : '') + '? It will go back to Available tasks.')) return;
+    qBusyBtn(b, async () => { const s = await call('qa_release', { logId: d.qrelease }); if (qOpenDone === d.qrelease) qOpenDone = null; qRender(s); toast('Task released.'); });
+  }
+  else if (d.qreport){
+    if (state && state.open){ toast('You already have a work timer running (Task ' + state.open.taskId + '). Submit it first.', true); setTab('today'); return; }
+    qBusyBtn(b, async () => { const s = await call('start', { taskId: d.qreport, type: 'New' }); render(s); setTab('today'); toast('Work timer started for Task ' + d.qreport + '.'); });
+  }
+});
+$('qSearch').addEventListener('input', () => { qShown = 40; if (qState) qRenderAvail(); });
+$('qMore').addEventListener('click', () => { qShown += 40; qRenderAvail(); });
+$('qRefresh').addEventListener('click', () => qLoad('toast'));
 
 /* ---------- demo mode (add ?demo to the URL) ---------- */
 function demo(action, d){
