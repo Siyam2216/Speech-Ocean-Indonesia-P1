@@ -372,7 +372,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px
       </section>
       <section class="card">
         <div class="row"><h2>Available tasks</h2><button class="link" id="qRefresh" type="button">Refresh</button></div>
-        <p class="sub">Submitted by our TRs, oldest first. Claim → TR ID is copied and AssignedTask opens → paste it in Filling WorkerID → Search → claim a task there → after QA, submit your report here.</p>
+        <p class="sub">Submitted by our TRs, oldest first. Claim → Open assigned task → open any task there → enter its Task ID here → Complete work with valid / invalid duration.</p>
         <input class="qsearch" id="qSearch" type="search" placeholder="Search by Task ID, TR ID or Platform ID" autocomplete="off">
         <ul class="qlist" id="qAvail"></ul>
         <div class="hidden" id="qMoreBox" style="text-align:center;margin-top:12px"><button class="qbtn ghost" id="qMore" type="button">Show more</button></div>
@@ -420,7 +420,7 @@ const KEY = 'so_idn1_session_v3';
 const $ = id => document.getElementById(id);
 let state = null, session = null, tick = null, editId = null, startType = 'New';
 let hist = null, tab = 'today', openDay = null, editFrom = 'today';
-const SO_URL = 'http://47.91.219.215:9630/index.php?c=apply&m=oriented';   // Apply For Work > AssignedTask
+const SO_URL = 'http://47.91.219.215:9630/index.php?c=apply&m=oriented_list&worker_id=';   // AssignedTask list for one TR
 let qState = null, qPoll = null, qTick = null, qShown = 40, qOpenDone = null, qBusy = false, qLastOk = 0, qDefaulted = false;
 
 const store = {
@@ -772,7 +772,7 @@ async function qBusyBtn(btn, fn){
   try { await fn(); } catch(err){ toast(err.message || 'Something went wrong.', true); }
   qBusy = false; if (document.body.contains(btn)){ btn.disabled = false; btn.innerHTML = btn._label; }
 }
-function qStart(){ qStop(); qPoll = setInterval(() => { if (!document.hidden && !qBusy && !qOpenDone) qLoad(true); }, QA_REFRESH*1000); qTick = setInterval(qStamp, 1000); }
+function qStart(){ qStop(); qPoll = setInterval(() => { if (!document.hidden && !qBusy && !qOpenDone && ![...document.querySelectorAll('#qMine input')].some(x => x.value || x === document.activeElement)) qLoad(true); }, QA_REFRESH*1000); qTick = setInterval(qStamp, 1000); }
 function qStop(){ clearInterval(qPoll); clearInterval(qTick); qPoll = qTick = null; }
 async function qLoad(silent){
   if (!session) return;
@@ -785,7 +785,7 @@ function qRender(s){
   $('qWait').textContent = n(s.stats.waiting);
   $('qProg').textContent = n(s.stats.inProgressMine);
   $('qDone').textContent = n(s.stats.doneToday); $('qDoneTotal').textContent = 'today · ' + n(s.stats.doneTotal) + ' total';
-  $('qMineSub').textContent = 'Search the TR ID in AssignedTask, do the QA there, then submit your QA report here. Unfinished claims are released after ' + s.claimHours + ' hours.';
+  $('qMineSub').textContent = 'Open assigned task → open a task → enter its Task ID → Complete work. Unfinished claims are released after ' + s.claimHours + ' hours.';
   $('qMineCount').textContent = s.mine.length ? s.mine.length + ' claimed' : '';
   qRenderMine(); qRenderAvail(); qRenderRecent(); qStamp();
 }
@@ -809,19 +809,23 @@ function qRenderMine(){
       qHead(t, '<span class="qtimer' + (soon ? ' soon' : '') + '" data-exp="' + esc(t.expiresAt) + '">' + (left > 0 ? 'Releases in ' + qDur(left) : 'Releasing…') + '</span>') +
       qMeta(t) + '<div class="qtr" style="margin-top:8px">Claimed ' + qDT(t.claimedAt) + '</div>' +
       (open
-        ? '<div class="qdone"><div class="qtr" style="margin-bottom:6px">Enter your QA task result from the platform</div>' +
-          '<label for="qt_' + esc(t.logId) + '" style="margin-top:0">QA Task ID</label><input id="qt_' + esc(t.logId) + '" placeholder="Task ID of your QA task" autocapitalize="characters">' +
-          '<div class="grid2"><div><label for="qv_' + esc(t.logId) + '">Valid duration (ms)</label><input id="qv_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120"></div>' +
-          '<div><label for="qvi_' + esc(t.logId) + '">Valid items</label><input id="qvi_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="428"></div></div>' +
+        ? '<div class="qdone"><div class="qtr" style="margin-bottom:6px">Complete work · QA Task <b>' + esc(t.qaTaskId) + '</b> — enter the result from the platform</div>' +
+          '<div class="grid2"><div><label for="qv_' + esc(t.logId) + '" style="margin-top:0">Valid duration (ms)</label><input id="qv_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120"></div>' +
+          '<div><label for="qvi_' + esc(t.logId) + '" style="margin-top:0">Valid items</label><input id="qvi_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="428"></div></div>' +
           '<div class="grid2"><div><label for="qi_' + esc(t.logId) + '">Invalid duration (ms)</label><input id="qi_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="244919"></div>' +
           '<div><label for="qii_' + esc(t.logId) + '">Invalid items</label><input id="qii_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="72"></div></div>' +
           '<label for="qn_' + esc(t.logId) + '">Note <span class="opt">(optional)</span></label>' +
           '<textarea id="qn_' + esc(t.logId) + '" placeholder="Anything the admin should know?"></textarea>' +
-          '<div class="qacts"><button class="qbtn green" data-qconfirm="' + esc(t.logId) + '">Submit QA report</button><button class="qbtn ghost" data-qcancel="1">Cancel</button></div></div>'
-        : '<div class="qacts">' + (t.platformId ? '<button class="qbtn soft" data-qcopy="' + esc(t.platformId) + '">Copy TR ID (' + esc(t.platformId) + ')</button>' : '') +
-          '<a class="qbtn" href="' + SO_URL + '" target="_blank" rel="noopener" data-qopen="' + esc(t.platformId || '') + '" style="text-decoration:none">Open AssignedTask</a>' +
-          '<button class="qbtn green" data-qdone="' + esc(t.logId) + '">Submit QA report</button>' +
-          '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button></div>') +
+          '<div class="qacts"><button class="qbtn green" data-qconfirm="' + esc(t.logId) + '">Submit</button><button class="qbtn ghost" data-qcancel="1">Cancel</button></div></div>'
+        : (t.platformId ? '<div class="qacts"><a class="qbtn" href="' + SO_URL + encodeURIComponent(t.platformId) + '" target="_blank" rel="noopener" style="text-decoration:none">Open assigned task</a></div>' : '<div class="qtr" style="margin-top:10px">No platform ID for ' + esc(t.trId) + ' — ask the admin.</div>') +
+          (t.qaTaskId
+            ? '<div class="qtr" style="margin-top:10px">QA Task <b>' + esc(t.qaTaskId) + '</b>' + (t.qaStartedAt ? ' · started ' + qDT(t.qaStartedAt) : '') + '</div>' +
+              '<div class="qacts"><button class="qbtn green" data-qdone="' + esc(t.logId) + '">Complete work</button>' +
+              '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button></div>'
+            : '<label for="qt_' + esc(t.logId) + '">Enter Task ID <span class="opt">(the task you opened on the platform)</span></label>' +
+              '<input id="qt_' + esc(t.logId) + '" placeholder="Paste the Task ID" autocapitalize="characters">' +
+              '<div class="qacts"><button class="qbtn" data-qset="' + esc(t.logId) + '">Start task</button>' +
+              '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button></div>')) +
       '</li>';
   }).join('');
 }
@@ -855,30 +859,27 @@ function qStamp(){
   });
 }
 $('vQa').addEventListener('click', e => {
-  const lk = e.target.closest('a[data-qopen]');
-  if (lk){ if (lk.dataset.qopen) qCopy(lk.dataset.qopen).then(ok => ok && toast('TR ID ' + lk.dataset.qopen + ' copied. Paste it in Filling WorkerID and Search.')); return; }
   const b = e.target.closest('button'); if (!b) return;
   const d = b.dataset;
   if (d.qcopy) qCopy(d.qcopy).then(ok => toast(ok ? d.qcopy + ' copied' : 'Could not copy: ' + d.qcopy, !ok));
   else if (d.qclaim){
-    const t = qFind(d.qclaim), pid = t && t.platformId;
-    const copying = pid ? qCopy(pid) : Promise.resolve(false);
-    const win = window.open(SO_URL, '_blank');   // open now (inside the click) so the browser doesn't block it
+    const t = qFind(d.qclaim);
     qBusyBtn(b, async () => {
-      let s;
-      try { s = await call('qa_claim', { logId: d.qclaim }); }
-      catch (err){ try { win && win.close(); } catch(_){} throw err; }
-      const ok = await copying; qRender(s);
-      toast('Claimed task ' + (t ? t.taskId : '') + (pid ? (ok ? ' · TR ID ' + pid + ' copied — paste it in Filling WorkerID and Search.' : ' · TR ID ' + pid) : ''));
+      const s = await call('qa_claim', { logId: d.qclaim }); qRender(s);
+      toast('Claimed task ' + (t ? t.taskId : '') + '. Now click "Open assigned task".');
     });
   }
-  else if (d.qdone){ qOpenDone = d.qdone; qRenderMine(); const f = $('qt_' + qOpenDone); if (f) f.focus(); }
+  else if (d.qset){
+    const id = d.qset, v = (($('qt_' + id) || {}).value || '').trim().toUpperCase();
+    if (!v){ toast('Please enter the Task ID.', true); return; }
+    qBusyBtn(b, async () => { const s = await call('qa_settask', { logId: id, qaTaskId: v }); qRender(s); toast('Task ' + v + ' started. Click "Complete work" when finished.'); });
+  }
+  else if (d.qdone){ qOpenDone = d.qdone; qRenderMine(); const f = $('qv_' + qOpenDone); if (f) f.focus(); }
   else if (d.qcancel){ qOpenDone = null; qRenderMine(); }
   else if (d.qconfirm){
     const id = d.qconfirm, val = k => (($(k + '_' + id) || {}).value || '').trim();
-    const qaTaskId = val('qt').toUpperCase();
+    const tk = qFind(id), qaTaskId = tk ? tk.qaTaskId : '';
     const nums = ['qv','qvi','qi','qii'].map(k => val(k) === '' ? NaN : Number(val(k)));
-    if (!qaTaskId){ toast('Please enter your QA Task ID.', true); return; }
     if (nums.some(x => !isFinite(x) || x < 0 || Math.floor(x) !== x)){ toast('Please enter whole numbers for all duration and item fields.', true); return; }
     if (nums[0] + nums[2] <= 0 || nums[1] + nums[3] <= 0){ toast('Duration and items must be more than 0.', true); return; }
     if (!confirm('Submit QA Task ' + qaTaskId + '?\n\nValid: ' + n(nums[0]) + ' ms / ' + n(nums[1]) + ' items\nInvalid: ' + n(nums[2]) + ' ms / ' + n(nums[3]) + ' items\nTotal: ' + n(nums[1] + nums[3]) + ' items')) return;
