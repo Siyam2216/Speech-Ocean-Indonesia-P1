@@ -487,10 +487,12 @@ function render(s){
   $('pRole').textContent = roleName(s.role || '');
   $('pRole').classList.toggle('hidden', !s.role);
   const isQa = s.role === 'QA';
-  document.querySelector('.tabs [data-tab=qa]').classList.toggle('hidden', !isQa);
-  $('tabBar').classList.remove('hidden');   // QA see Today, All time and QA Board
-  if (!isQa && tab === 'qa') setTab('today');
-  if (isQa && !qDefaulted){ qDefaulted = true; setTimeout(() => setTab('qa'), 0); }
+  document.querySelector('.tabs [data-tab=qa]').classList.add('hidden');   // QA Board is shown inside Today
+  $('tabBar').classList.remove('hidden');
+  if (tab === 'qa') setTab('today');
+  if (isQa && $('vQa').parentNode !== $('vToday')) $('vToday').insertBefore($('vQa'), $('cStart'));
+  $('vQa').classList.toggle('hidden', !(isQa && tab === 'today'));
+  if (isQa && tab === 'today' && !qPoll){ qLoad(); qStart(); }
   $('today').textContent = new Date().toLocaleDateString([], { day:'numeric', month:'short' });
 
   $('items').textContent = n(items);
@@ -539,10 +541,21 @@ function render(s){
   } else {
     form.dataset.log = '';
     $('cForm').classList.add('hidden'); $('cStart').classList.remove('hidden');
-    $('startTitle').textContent = met ? 'Take another task' : (subm.length ? 'Start your next task' : 'Start a task');
-    $('startSub').textContent = met
-      ? 'You have reached today\'s minimum. Extra tasks are welcome.'
-      : 'Complete at least ' + n(min) + ' audio items today. You can take as many tasks as you like.';
+    document.querySelector('#fStart .seg').classList.toggle('hidden', isQa);
+    if (isQa){
+      startType = 'Rework';
+      document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x.dataset.type === 'Rework'));
+      $('reworkNote').classList.add('hidden');
+      $('btnStart')._label = 'Start Rework';
+      if (!$('btnStart').disabled) $('btnStart').innerHTML = 'Start Rework';
+      $('startTitle').textContent = 'Rework a task';
+      $('startSub').textContent = 'New QA tasks come from the QA Board above. Use this only when a task came back from the platform for correction.';
+    } else {
+      $('startTitle').textContent = met ? 'Take another task' : (subm.length ? 'Start your next task' : 'Start a task');
+      $('startSub').textContent = met
+        ? 'You have reached today\'s minimum. Extra tasks are welcome.'
+        : 'Complete at least ' + n(min) + ' audio items today. You can take as many tasks as you like.';
+    }
     $('noDataBox').classList.toggle('hidden', !!noData);
     $('noDataInfo').classList.toggle('hidden', !noData);
     if (noData) $('noDataInfo').innerHTML = '<span>ⓘ</span><span>You reported <b>no data in the pool</b> at ' + fmtTime(noData.start) + '. If tasks appear later you can still start one.</span>';
@@ -585,9 +598,10 @@ function setTab(t){
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   $('vToday').classList.toggle('hidden', t !== 'today');
   $('vAll').classList.toggle('hidden', t !== 'all');
-  $('vQa').classList.toggle('hidden', t !== 'qa');
+  const qaToday = !!(state && state.role === 'QA' && t === 'today');
+  $('vQa').classList.toggle('hidden', !qaToday);
   if (t === 'all') loadHistory();
-  if (t === 'qa') { qLoad(); qStart(); } else qStop();
+  if (qaToday) { qLoad(true); qStart(); } else qStop();
 }
 async function loadHistory(withToast){
   if (!hist) $('days').innerHTML = '<li class="empty">Loading…</li>';
