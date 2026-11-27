@@ -800,7 +800,7 @@ function qRender(s){
   $('qWait').textContent = n(s.stats.waiting);
   $('qProg').textContent = n(s.stats.inProgressMine);
   $('qDone').textContent = n(s.stats.doneToday); $('qDoneTotal').textContent = 'today · ' + n(s.stats.doneTotal) + ' total';
-  $('qMineSub').textContent = 'Open assigned task → open a task → enter its Task ID → Complete work. Unfinished claims are released after ' + s.claimHours + ' hours.';
+  $('qMineSub').textContent = 'Open assigned task → open a task → enter its Task ID → Complete work.' + (s.claimHours > 0 ? ' Unfinished claims are released after ' + s.claimHours + ' hours.' : ' Claims stay with you until you submit or release them.');
   $('qMineCount').textContent = s.mine.length ? s.mine.length + ' claimed' : '';
   qRenderMine(); qRenderAvail(); qRenderRecent(); qStamp();
 }
