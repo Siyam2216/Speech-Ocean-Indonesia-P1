@@ -1,1498 +1,975 @@
-/**
- * Speech Ocean · Indonesia #1 — Work Progress backend (v4)
- * ------------------------------------------------------
- * 1. Open your Google Sheet > Extensions > Apps Script. Replace ALL code with this file. Save.
- * 2. Select setup in the toolbar > Run (approve permissions).
- * 3. Deploy > Manage deployments > Edit > Version: New version > Deploy.
- *
- * Tabs
- *   ID Details   — you fill: ID, Password, Name, Role (TR / QA), Active (Yes / No)
- *   Overview     — daily + lifetime overview (change the date in B4)
- *   Task Log     — every report. Tick "Verified" after you check a report.
- *                  Verified reports are locked for members and count as paid hours.
- *                  You can delete any row here. Reports update automatically.
- *   Daily Report — rebuilt automatically from Task Log
- *
- * Menu "Speech Ocean": Rebuild Overview · Refresh Daily Report · Clear ALL data (testing) · Run setup
- */
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speech Ocean · Work Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F5F8; --card:#FFFFFF; --ink:#0F1E2E; --muted:#5D6B7B; --line:#E2E8EF; --field:#FBFCFD;
+  --brand:#0B5E8E; --brand-2:#0B3D5C; --brand-soft:#E6F1F8;
+  --ok:#1E7A4C; --ok-soft:#DDF3E6; --warn:#9A6300; --warn-soft:#FFF1D1;
+  --bad:#B3261E; --bad-soft:#FBE2E0; --info:#1F5FBF; --info-soft:#DCEBFF;
+  --violet:#6B3FA0; --violet-soft:#F1E9FB; --gray-soft:#ECEFF3;
+  --r:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.top{background:linear-gradient(135deg,var(--brand-2) 0%,var(--brand) 100%);color:#fff;padding:22px 16px 70px;position:relative;overflow:hidden}
+.top svg.waves{position:absolute;left:0;right:0;bottom:0;width:100%;height:60px;opacity:.12}
+.top-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px;position:relative}
+.logo{width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.15);display:grid;place-items:center;flex:none}
+.brand b{display:block;font-size:17px;letter-spacing:-.01em}
+.brand span{font-size:13px;opacity:.82}
+.demo{margin-left:auto;font-size:11px;font-weight:600;background:rgba(255,255,255,.18);padding:3px 9px;border-radius:99px}
+main{max-width:560px;margin:-48px auto 24px;padding:0 16px;display:grid;gap:14px;position:relative}
+.stack{display:grid;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:0 1px 2px rgba(15,30,46,.04),0 10px 30px rgba(15,30,46,.06)}
+h2{font-size:17px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 6px}
+label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+label .opt{font-weight:400;color:var(--muted)}
+input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;color:var(--ink);background:var(--field)}
+input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:#fff}
+input[type=number]{font-variant-numeric:tabular-nums}
+.pw{position:relative}
+.pw input{padding-right:64px}
+.pw button{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--brand);font:600 12.5px Inter,sans-serif;cursor:pointer;padding:6px}
+.btn{appearance:none;border:0;width:100%;margin-top:18px;padding:13px 16px;border-radius:10px;background:var(--brand);color:#fff;font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.btn:hover{background:var(--brand-2)}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.green{background:var(--ok)} .btn.green:hover{background:#17623C}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)} .btn.ghost:hover{background:var(--bg)}
+.btn.slate{background:#4A5868} .btn.slate:hover{background:#38444F}
+.link{background:none;border:0;color:var(--muted);font:500 13px Inter,sans-serif;cursor:pointer;padding:4px 0}
+.link:hover{color:var(--ink)}
+.eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.divider{height:1px;background:var(--line);margin:18px 0 4px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
-const CONFIG = {
-  PROJECT: 'Speech Ocean · Indonesia #1',
-  TIMEZONE: 'Asia/Jakarta',      // Indonesia time (WIB) — the day resets at 12 AM Jakarta time
-  // Daily minimum audio items (valid + invalid) per member. Add a new line when the target changes;
-  // each line applies from its date (Jakarta time) onward. Older days keep their old target.
-  TARGETS: [
-    { from: '2000-01-01', TR: 500, QA: 500 },
-    { from: '2026-11-09', TR: 500, QA: 1000 }   // QA = 2 tasks
-  ],
-  QA_FROM_ROW: 28,        // ID Details: when Role is empty, rows from here down are QA (above are TR)
-  OVERVIEW_ROWS: 200,     // max members shown on each Overview tab
-  SHEET_ID: ''            // leave empty when this script is opened from the Sheet
+/* profile */
+.profile{display:flex;align-items:center;gap:14px}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700;font-size:18px;flex:none}
+.profile h2{font-size:18px;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{display:inline-block;font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 9px;border-radius:99px}
+.chip.role{color:var(--violet);background:var(--violet-soft)}
+.profile .link{margin-left:auto;align-self:flex-start}
+
+/* progress */
+.big{display:flex;align-items:baseline;gap:6px;margin:6px 0 12px}
+.big b{font-size:36px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.big span{color:var(--muted);font-size:14px}
+.bar{height:10px;background:#EAEFF4;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--brand);border-radius:99px;transition:width .6s ease}
+.bar.done i{background:var(--ok)}
+.msg{font-size:13.5px;margin:10px 0 0;color:var(--muted)}
+.msg.done{color:var(--ok);font-weight:600}
+.stats{display:grid;grid-template-columns:.7fr 1.15fr 1.15fr;gap:8px;margin-top:16px}
+.stat{background:var(--bg);border-radius:10px;padding:10px 12px;min-width:0}
+.stat small{display:block;font-size:11.5px;color:var(--muted)}
+.stat b{display:block;font-size:15px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat em{font-style:normal;font-size:11px;color:var(--muted)}
+.pending-note{margin-top:12px;font-size:12.5px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:8px 12px}
+
+/* segmented */
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--bg);border-radius:10px;padding:4px;gap:4px;margin-top:14px}
+.seg button{border:0;background:none;border-radius:8px;padding:9px 10px;font:600 13.5px Inter,sans-serif;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(15,30,46,.12)}
+.seg button.on[data-type=Rework]{color:var(--violet)}
+.reworknote{font-size:12.5px;color:var(--violet);margin-top:8px}
+
+/* form card */
+.live{border-color:#BFD9F5;background:linear-gradient(180deg,#F4F9FF 0%,#FFFFFF 40%)}
+.live.edit{border-color:#F0D9A8;background:linear-gradient(180deg,#FFFBF1 0%,#FFFFFF 40%)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--info);display:inline-block;margin-right:7px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.timer{font-weight:700;font-size:32px;line-height:1;font-variant-numeric:tabular-nums;margin:14px 0 4px;letter-spacing:-.02em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.group{border:1px solid var(--line);border-radius:12px;padding:2px 14px 14px;margin-top:14px}
+.group.valid{border-color:#BFE5CF;background:#F7FCF9}
+.group.invalid{border-color:#F3CFCB;background:#FFF9F8}
+.group h3{font-size:13px;margin:12px 0 0;display:flex;align-items:center;gap:7px}
+.group h3 i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.hint{font-size:12px;color:var(--muted);margin-top:5px;min-height:16px;font-variant-numeric:tabular-nums}
+.total{display:flex;justify-content:space-between;align-items:center;margin-top:14px;padding:12px 14px;background:var(--bg);border-radius:10px;font-size:14px}
+.total b{font-variant-numeric:tabular-nums}
+.btnrow{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.btnrow .btn{margin-top:18px}
+
+/* no data */
+.nodata{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.nodata .btn{margin-top:0}
+.nodata-info{display:flex;gap:10px;align-items:flex-start;background:var(--gray-soft);border-radius:10px;padding:12px 14px;font-size:13.5px;color:#3A4756;margin-top:16px}
+
+/* list */
+.list{list-style:none;margin:8px 0 0;padding:0}
+.list li{padding:14px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.lt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.lt b{font-size:14.5px}
+.lt span.meta{display:block;font-size:12.5px;color:var(--muted)}
+.lm{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.lm div{font-size:12px;color:var(--muted)}
+.lm div b{display:block;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.pill.prog{background:var(--info-soft);color:var(--info)}
+.pill.pend{background:var(--warn-soft);color:var(--warn)}
+.pill.ver{background:var(--ok-soft);color:var(--ok)}
+.pill.nod{background:var(--gray-soft);color:var(--muted)}
+.tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--violet);background:var(--violet-soft);padding:1px 7px;border-radius:5px;margin-left:6px;vertical-align:2px}
+.acts{display:flex;gap:8px;margin-top:12px}
+.acts button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 10px;font:600 13px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.acts button:hover{background:var(--bg)}
+.acts button.del{color:var(--bad)}
+.acts button.del:hover{background:var(--bad-soft);border-color:#F3CFCB}
+.locked{margin-top:10px;font-size:12px;color:var(--ok)}
+.empty{color:var(--muted);font-size:14px;text-align:center;padding:16px 0 6px}
+
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;box-shadow:0 1px 2px rgba(15,30,46,.04)}
+.tabs button{border:0;background:none;border-radius:9px;padding:10px;font:600 14px Inter,sans-serif;color:var(--muted);cursor:pointer}
+.tabs button.on{background:var(--brand);color:#fff}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.kgrid .stat b{font-size:20px}
+.kgrid .stat.wide{grid-column:1/-1}
+.days{list-style:none;margin:8px 0 0;padding:0}
+.days>li{border-top:1px solid var(--line)}
+.days>li:first-child{border-top:0}
+.dayhead{width:100%;display:flex;align-items:center;gap:10px;background:none;border:0;padding:13px 0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.dayhead .dd{flex:1;min-width:0}
+.dayhead .dd b{display:block;font-size:14.5px}
+.dayhead .dd span{font-size:12.5px;color:var(--muted)}
+.dayhead .num{text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
+.dayhead .num b{display:block;font-size:14px}
+.dayhead .chev{color:var(--muted);transition:transform .2s;font-size:12px}
+.days>li.open .chev{transform:rotate(90deg)}
+.daybody{padding:0 0 10px 12px;border-left:2px solid var(--line);margin:0 0 8px 4px}
+.daybody .list li:first-child{padding-top:4px}
+.pill.met{background:var(--ok-soft);color:var(--ok)}
+.pill.low{background:var(--warn-soft);color:var(--warn)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.err{background:var(--bad)}
+.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.loading{display:grid;place-items:center;padding:40px 0;color:var(--muted);font-size:14px}
+.loading .spin{border-color:var(--line);border-top-color:var(--brand);width:22px;height:22px;margin-bottom:10px}
+footer{text-align:center;font-size:12px;color:var(--muted);padding:8px 16px 28px}
+.hidden{display:none!important}
+/* QA board */
+.qstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.qtask{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+.qtask.mine{border-color:#D8C6F0;background:linear-gradient(180deg,#FBF8FF 0%,#fff 60%)}
+.qtask.soon{border-color:#F0D9A8;background:linear-gradient(180deg,#FFFBF1 0%,#fff 60%)}
+.qlist{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.qhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.qtid{font-size:15.5px;font-weight:700}
+.qtr{font-size:13px;color:var(--muted);margin-top:2px}
+.qtr b{color:var(--ink);font-weight:600}
+.qmeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.qmeta div{font-size:11.5px;color:var(--muted);min-width:0}
+.qmeta div b{display:block;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.qbtn{border:0;border-radius:8px;padding:8px 12px;font:600 13px Inter,sans-serif;cursor:pointer;background:var(--violet);color:#fff;display:inline-flex;align-items:center;gap:6px}
+.qbtn.soft{background:var(--violet-soft);color:var(--violet)}
+.qbtn.green{background:var(--ok)}
+.qbtn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.qbtn:disabled{opacity:.6;cursor:wait}
+.qbtn .spin{width:13px;height:13px}
+.qbtn.soft .spin,.qbtn.ghost .spin{border-color:var(--line);border-top-color:var(--violet)}
+.qtimer{font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--info-soft);color:var(--info);white-space:nowrap}
+.qtimer.soon{background:var(--warn-soft);color:var(--warn)}
+.qage{font-size:12px;color:var(--muted);white-space:nowrap}
+.qdone{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.qdone textarea{width:100%;min-height:60px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);resize:vertical}
+.qsearch{margin-top:12px}
+.qrecent li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.qrecent li:first-child{border-top:0}
+.qrecent span.m{display:block;font-size:12.5px;color:var(--muted)}
+.tabs button[data-tab=qa].on{background:var(--violet)}
+@media (max-width:380px){ .grid2{grid-template-columns:1fr} .stat{padding:9px 10px} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <svg class="waves" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 30 C 150 0 300 60 450 30 S 750 0 900 30 S 1100 60 1200 30 V60 H0Z" fill="#fff"/>
+  </svg>
+  <div class="top-in">
+    <div class="logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+        <path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>
+      </svg>
+    </div>
+    <div class="brand"><b>Speech Ocean</b><span>Indonesia #1 · Work Portal</span></div>
+    <span class="demo hidden" id="demoTag">Demo</span>
+  </div>
+</header>
+
+<main>
+  <section class="card loading" id="vLoading"><div class="spin"></div>Loading…</section>
+
+  <!-- Sign in -->
+  <section class="card hidden" id="vLogin">
+    <h2>Sign in</h2>
+    <p class="sub">Use the ID and password given by your team lead.</p>
+    <form id="fLogin" autocomplete="on">
+      <label for="inId">ID</label>
+      <input id="inId" name="username" autocomplete="username" placeholder="Your ID" required autocapitalize="characters">
+      <label for="inPass">Password</label>
+      <div class="pw">
+        <input id="inPass" name="password" type="password" autocomplete="current-password" placeholder="Your password" required>
+        <button type="button" id="btnEye">Show</button>
+      </div>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <!-- Dashboard -->
+  <div class="stack hidden" id="vDash">
+    <section class="card">
+      <div class="profile">
+        <div class="avatar" id="avatar">–</div>
+        <div>
+          <h2 id="pName">—</h2>
+          <div class="chips"><span class="chip" id="pId"></span><span class="chip role hidden" id="pRole"></span></div>
+        </div>
+        <button class="link" id="btnOut" type="button">Sign out</button>
+      </div>
+    </section>
+
+    <div class="tabs" role="tablist" id="tabBar">
+      <button type="button" class="on" data-tab="today">Today</button>
+      <button type="button" data-tab="all">All time</button>
+      <button type="button" data-tab="qa" class="hidden">QA Board</button>
+    </div>
+
+    <div class="stack" id="vToday">
+    <section class="card">
+      <div>
+        <div class="row"><span class="eyebrow">Today's progress</span><span class="eyebrow" id="today"></span></div>
+        <div class="big"><b id="items">0</b><span id="ofMin">/ 500 audio items minimum</span></div>
+        <div class="bar" id="bar"><i></i></div>
+        <p class="msg" id="msg"></p>
+      </div>
+      <div class="stats">
+        <div class="stat"><small>Tasks</small><b id="sTasks">0</b></div>
+        <div class="stat"><small>Valid (ms)</small><b id="sValid">0</b><em id="sValidI">0 items</em></div>
+        <div class="stat"><small>Invalid (ms)</small><b id="sInvalid">0</b><em id="sInvalidI">0 items</em></div>
+      </div>
+      <div class="pending-note hidden" id="pendNote"></div>
+    </section>
+
+    <!-- Result form: submit (task in progress) or edit (pending report) -->
+    <section class="card live hidden" id="cForm">
+      <div id="headLive">
+        <div class="row">
+          <span class="eyebrow"><span class="dot"></span>Task in progress</span>
+          <span><span class="chip" id="liveTask"></span><span class="tag hidden" id="liveRework">Rework</span></span>
+        </div>
+        <div class="timer" id="timer">00:00:00</div>
+        <p class="sub" id="liveSince">Started at —</p>
+        <div class="divider"></div>
+        <h2 style="margin-top:14px">Submit task result</h2>
+        <p class="sub">When you finish on the platform copy these values from the <b>Complete</b> tab.</p>
+      </div>
+      <div id="headEdit" class="hidden">
+        <span class="eyebrow" style="color:var(--warn)">Editing report</span>
+        <h2 style="margin-top:6px" id="editTitle">Task</h2>
+        <p class="sub">You can change this report until the admin verifies it.</p>
+      </div>
+
+      <form id="fResult" novalidate>
+        <label for="inTaskId">Task ID</label>
+        <input id="inTaskId" autocapitalize="characters">
+        <div class="grid2">
+          <div><label for="inBatch">Batch</label><input id="inBatch" inputmode="numeric" placeholder="e.g. 946"></div>
+          <div><label for="inTaskName">Task Name</label><input id="inTaskName" placeholder="e.g. batch_04"></div>
+        </div>
+        <div class="group valid">
+          <h3><i style="background:var(--ok)"></i>Valid</h3>
+          <div class="grid2">
+            <div><label for="inVMs">Duration (ms)</label><input id="inVMs" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120"><div class="hint" id="hVMs"></div></div>
+            <div><label for="inVIt">Audio Items</label><input id="inVIt" type="number" inputmode="numeric" min="0" step="1" placeholder="428"></div>
+          </div>
+        </div>
+        <div class="group invalid">
+          <h3><i style="background:var(--bad)"></i>Invalid</h3>
+          <div class="grid2">
+            <div><label for="inIMs">Duration (ms)</label><input id="inIMs" type="number" inputmode="numeric" min="0" step="1" placeholder="244919"><div class="hint" id="hIMs"></div></div>
+            <div><label for="inIIt">Audio Items</label><input id="inIIt" type="number" inputmode="numeric" min="0" step="1" placeholder="72"></div>
+          </div>
+        </div>
+        <div class="total"><span>Total audio items</span><b id="tItems">0</b></div>
+        <label for="inNotes">Notes <span class="opt">(optional)</span></label>
+        <input id="inNotes" placeholder="Any issue with this task?">
+        <div id="btnsLive"><button class="btn green" type="submit">Submit Task</button></div>
+        <div id="btnsEdit" class="btnrow hidden">
+          <button class="btn ghost" type="button" id="btnCancelEdit">Cancel</button>
+          <button class="btn" type="submit">Save changes</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Start task -->
+    <section class="card hidden" id="cStart">
+      <h2 id="startTitle">Start a task</h2>
+      <p class="sub" id="startSub"></p>
+      <form id="fStart">
+        <div class="seg" role="tablist" aria-label="Task type">
+          <button type="button" class="on" data-type="New">New task</button>
+          <button type="button" data-type="Rework">Rework</button>
+        </div>
+        <p class="reworknote hidden" id="reworkNote">Use Rework when a submitted task came back from the platform for correction.</p>
+        <label for="inTask">Task ID</label>
+        <input id="inTask" placeholder="Task ID from the platform" autocapitalize="characters">
+        <button class="btn" type="submit" id="btnStart">Start Task</button>
+      </form>
+
+      <div class="nodata" id="noDataBox">
+        <p class="sub" style="margin-bottom:10px">No task available on the platform right now?</p>
+        <button class="btn ghost" type="button" id="btnNoData">No data in the pool</button>
+        <div id="noDataForm" class="hidden">
+          <label for="inNoDataNote">Note <span class="opt">(optional)</span></label>
+          <input id="inNoDataNote" placeholder="e.g. Checked the pool at 10 AM and 2 PM">
+          <div class="btnrow">
+            <button class="btn ghost" type="button" id="btnNoDataCancel">Cancel</button>
+            <button class="btn slate" type="button" id="btnNoDataSend">Submit daily activity</button>
+          </div>
+        </div>
+      </div>
+      <div class="nodata-info hidden" id="noDataInfo"></div>
+    </section>
+
+    <!-- Today's reports -->
+    <section class="card">
+      <div class="row">
+        <h2>Today's reports</h2>
+        <button class="link" id="btnRefresh" type="button">Refresh</button>
+      </div>
+      <ul class="list" id="list"></ul>
+    </section>
+    </div>
+
+    <!-- QA Board (QA members only) -->
+    <div class="stack hidden" id="vQa">
+      <section class="card">
+        <div class="row"><span class="eyebrow">QA Board</span><span class="eyebrow" id="qUpdated">—</span></div>
+        <div class="qstats">
+          <div class="stat"><small>Waiting</small><b id="qWait">0</b><em>TR tasks</em></div>
+          <div class="stat"><small>My in progress</small><b id="qProg">0</b><em id="qProgMine">claimed by me</em></div>
+          <div class="stat"><small>Done by me</small><b id="qDone">0</b><em id="qDoneTotal">today</em></div>
+        </div>
+      </section>
+      <section class="card">
+        <div class="row"><h2>My tasks</h2><span class="eyebrow" id="qMineCount"></span></div>
+        <p class="sub" id="qMineSub">Claim a task → Task ID is copied → open Speech Ocean, search the Task ID and do the QA there → come back and Mark done.</p>
+        <ul class="qlist" id="qMine"></ul>
+      </section>
+      <section class="card">
+        <div class="row"><h2>Available tasks</h2><button class="link" id="qRefresh" type="button">Refresh</button></div>
+        <p class="sub">Submitted by our TRs, oldest first. Claim → Open assigned task → open any task there → enter its Task ID here → Complete work with valid / invalid duration.</p>
+        <input class="qsearch" id="qSearch" type="search" placeholder="Search by Task ID, TR ID or Platform ID" autocomplete="off">
+        <ul class="qlist" id="qAvail"></ul>
+        <div class="hidden" id="qMoreBox" style="text-align:center;margin-top:12px"><button class="qbtn ghost" id="qMore" type="button">Show more</button></div>
+      </section>
+      <section class="card">
+        <h2>Recently done by me</h2>
+        <ul class="list qrecent" id="qRecent"></ul>
+      </section>
+    </div>
+
+    <!-- All time -->
+    <div class="stack hidden" id="vAll">
+      <section class="card">
+        <div class="row"><span class="eyebrow">All time summary</span><button class="link" id="btnRefreshAll" type="button">Refresh</button></div>
+        <div class="kgrid">
+          <div class="stat"><small>Tasks submitted</small><b id="aTasks">0</b><em id="aRework"></em></div>
+          <div class="stat"><small>Audio items</small><b id="aItems">0</b></div>
+          <div class="stat"><small>Valid (ms)</small><b id="aValid">0</b><em id="aValidI"></em></div>
+          <div class="stat"><small>Invalid (ms)</small><b id="aInvalid">0</b><em id="aInvalidI"></em></div>
+          <div class="stat"><small>Days worked</small><b id="aDays">0</b></div>
+          <div class="stat"><small>Days target met</small><b id="aMet">0</b></div>
+          <div class="stat"><small>Verified</small><b id="aVer" style="color:var(--ok)">0</b><em>reports</em></div>
+          <div class="stat"><small>Pending review</small><b id="aPend" style="color:var(--warn)">0</b><em>reports</em></div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Daily history</h2>
+        <p class="sub">Tap a day to see its reports.</p>
+        <ul class="days" id="days"></ul>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer>Speech Ocean · Indonesia #1 — reports become final after admin verification.</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ====== CONFIG ====== */
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAxa8IoqPqBx7sOFu3e4slmXodAZwghvF2HC-YszCGzhSx6Fca2hpH96k3QxVzVoK_fg/exec';
+/* ==================== */
+
+const DEMO = !/^https:\/\/script\.google\.com\//.test(SCRIPT_URL) || new URLSearchParams(location.search).has('demo');
+const KEY = 'so_idn1_session_v3';
+const $ = id => document.getElementById(id);
+let state = null, session = null, tick = null, editId = null, startType = 'New';
+let hist = null, tab = 'today', openDay = null, editFrom = 'today';
+const SO_URL = 'http://47.91.219.215:9630/index.php?c=apply&m=oriented_list&worker_id=';   // AssignedTask list for one TR
+let qState = null, qPoll = null, qTick = null, qShown = 40, qOpenDone = null, qBusy = false, qLastOk = 0, qDefaulted = false;
+
+const store = {
+  get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
 };
 
-const NAVY = '#0B3D5C', BLUE = '#0B5E8E', INK = '#1F2933', MUTED = '#5D6B7B', LINE = '#E3E7ED';
-const MS_PER_HOUR = 3600000;
-const VERSION = '4.8';   // bump to auto-rebuild Overview + tidy sheets on the next request
-const CHECKBOX = () => SpreadsheetApp.newDataValidation().requireCheckbox().build();
-const DT = 'dd mmm, hh:mm AM/PM';
-
-/* Task Log columns (0-based):
-   0 Log ID · 1 Date · 2 Member ID · 3 Name · 4 Role · 5 Type · 6 Task ID · 7 Batch · 8 Task Name
-   9 Start · 10 End · 11 Work(min) · 12 Valid ms · 13 Valid h · 14 Valid items · 15 Invalid ms
-   16 Invalid h · 17 Invalid items · 18 Total items · 19 Status · 20 Verified · 21 Notes          */
-const C_ = { TYPE: 5, TASK: 6, START: 9, END: 10, WORK: 11, VMS: 12, VIT: 14, IMS: 15, IIT: 17, TOTAL: 18, STATUS: 19, VER: 20, NOTES: 21 };
-
-const LOG = {
-  name: 'Task Log',
-  head: ['Log ID', 'Date', 'Member ID', 'Name', 'Role', 'Type', 'Task ID', 'Batch', 'Task Name',
-         'Start Time', 'End Time', 'Work (min)',
-         'Valid (ms)', 'Valid Hours', 'Valid Items',
-         'Invalid (ms)', 'Invalid Hours', 'Invalid Items',
-         'Total Items', 'Status', 'Verified', 'Notes'],
-  widths: [120, 95, 95, 170, 55, 75, 90, 65, 100, 140, 140, 75, 105, 90, 85, 105, 95, 95, 85, 105, 75, 220],
-  fmt: ['@', '@', '@', '@', '@', '@', '@', '@', '@', DT, DT, '#,##0',
-        '#,##0', '0.000', '#,##0', '#,##0', '0.000', '#,##0', '#,##0', '@', 'General', '@']
-};
-
-const DAILY = {
-  name: 'Daily Report',
-  head: ['Date', 'Member ID', 'Name', 'Role', 'Tasks', 'Verified', 'Pending',
-         'Verified Valid (ms)', 'Verified Valid Hours', 'Verified Invalid (ms)', 'Verified Invalid Hours',
-         'Total Items', 'Work Hours', 'Day Status',
-         'QA Board Tasks', 'QA Board Items', 'QA Board Verified Valid Hours', 'QA Board Verified Invalid Hours'],
-  widths: [95, 95, 170, 55, 60, 70, 70, 125, 125, 130, 130, 90, 90, 130, 105, 105, 150, 155],
-  fmt: ['@', '@', '@', '@', '0', '0', '0', '#,##0', '0.000', '#,##0', '0.000', '#,##0', '0.00', '@', '0', '#,##0', '0.000', '0.000']
-};
-
-const V3_HEAD = ['Log ID', 'Date', 'Member ID', 'Name', 'Role', 'Task ID', 'Batch', 'Task Name', 'Start Time', 'End Time',
-  'Work (min)', 'Valid (ms)', 'Valid Hours', 'Valid Items', 'Invalid (ms)', 'Invalid Hours', 'Invalid Items', 'Total Items', 'Status', 'Notes'];
-const ID_HEAD = ['ID', 'Password', 'Name', 'Role', 'Phone', 'Active'];
-
-/* ================= Web endpoints ================= */
-
-function doGet(e) {
-  const p = (e && e.parameter) || {};
-  if (!p.action) return out_({ ok: true, service: CONFIG.PROJECT });
-  return handle_(p);
+/* ---------- API ---------- */
+async function api(action, data){
+  if (DEMO) return demo(action, data);
+  const q = new URLSearchParams(Object.assign({ action }, data, { _: Date.now() }));
+  let r;
+  try { r = await fetch(SCRIPT_URL + '?' + q.toString(), { redirect: 'follow' }); }
+  catch (e) { throw new Error('Cannot reach the server. Check your internet and try again.'); }
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch (e) { throw new Error('Server is not set up correctly. Please contact your team lead.'); }
 }
-
-function doPost(e) {
-  let d = {};
-  try { d = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (err) {}
-  return handle_(d);
-}
-
-function handle_(d) {
-  const writes = ['start', 'finish', 'update', 'remove', 'nodata'].indexOf(d.action) >= 0;
-  const lock = LockService.getScriptLock();
-  try {
-    if (writes) lock.waitLock(20000);
-    upgrade_();
-    if (String(d.action || '').indexOf('qa_') === 0) return out_(qaHandle_(d));   // QA Board (qa.html)
-    const id = clean_(d.memberId);
-    if (!id) throw new Error('ID is required.');
-    if (d.action === 'login') return out_(login_(id, String(d.password || '').trim()));
-    const mem = auth_(id, String(d.token || ''));
-    switch (d.action) {
-      case 'status': return out_(status_(mem));
-      case 'history': return out_(history_(mem));
-      case 'start':  return out_(start_(mem, clean_(d.taskId), d.type));
-      case 'finish': return out_(save_(mem, d, 'finish'));
-      case 'update': return out_(save_(mem, d, 'update'));
-      case 'remove': return out_(remove_(mem, d.logId));
-      case 'nodata': return out_(noData_(mem, String(d.notes || '').trim()));
-    }
-    throw new Error('Unknown action.');
-  } catch (err) {
-    return out_({ ok: false, code: err.code || '', error: String(err.message || err) });
-  } finally {
-    if (writes) lock.releaseLock();
-  }
-}
-
-/* ================= Auth ================= */
-
-function login_(id, password) {
-  const mem = member_(id);
-  if (!mem || !password || mem.pass !== password) throw new Error('Invalid ID or password.');
-  if (!mem.active) throw new Error('Your account is inactive. Please contact your team lead.');
-  return Object.assign(status_(mem), { token: token_(mem) });
-}
-
-function auth_(id, token) {
-  const mem = member_(id);
-  if (!mem || token !== token_(mem)) { const e = new Error('Your session has expired. Please sign in again.'); e.code = 'AUTH'; throw e; }
-  if (!mem.active) { const e = new Error('Your account is inactive. Please contact your team lead.'); e.code = 'AUTH'; throw e; }
-  return mem;
-}
-
-function token_(mem) {
-  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, mem.id + '|' + mem.pass + '|' + salt_());
-  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
-}
-
-function salt_() {
-  const props = PropertiesService.getScriptProperties();
-  let s = props.getProperty('SALT');
-  if (!s) { s = Utilities.getUuid(); props.setProperty('SALT', s); }
+async function call(action, data){
+  const s = await api(action, Object.assign({ memberId: session.memberId, token: session.token }, data));
+  if (!s.ok){ if (s.code === 'AUTH') signOut(); throw new Error(s.error); }
   return s;
 }
 
-/* ================= Member actions ================= */
-
-function status_(mem) {
-  const day = today_();
-  const mine = rows_(getSheet_(LOG)).filter(r => clean_(r[2]) === mem.id);
-  const open = mine.find(r => r[C_.STATUS] === 'In Progress');
-  return {
-    ok: true, project: CONFIG.PROJECT, date: day, min: minFor_(mem.role),
-    memberId: mem.id, name: mem.name, role: mem.role,
-    tasks: mine.filter(r => dateKey_(r[1]) === day).map(task_),
-    open: open ? task_(open) : null
-  };
+/* ---------- helpers ---------- */
+function show(v){ ['vLoading','vLogin','vDash'].forEach(x => $(x).classList.toggle('hidden', x !== v)); }
+function toast(text, err){
+  const t = $('toast'); t.textContent = text; t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(t._h); t._h = setTimeout(() => t.className = 'toast', 3400);
 }
-
-/** All reports of this member (newest first) for the All time view. */
-function history_(mem) {
-  const mine = rows_(getSheet_(LOG)).filter(r => clean_(r[2]) === mem.id && r[C_.STATUS] !== 'In Progress');
-  const mins = {};
-  mine.forEach(r => { const d = dateKey_(r[1]); if (!(d in mins)) mins[d] = minFor_(mem.role, d); });
-  return { ok: true, today: today_(), min: minFor_(mem.role), mins: mins, tasks: mine.map(task_).reverse() };
+async function withBusy(btn, fn){
+  if (!btn._label) btn._label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Please wait';
+  try { await fn(); } catch(err){ toast(err.message || 'Something went wrong.', true); }
+  btn.disabled = false; btn.innerHTML = btn._label;
 }
-
-function start_(mem, taskId, type) {
-  type = String(type || '').toLowerCase() === 'rework' ? 'Rework' : 'New';
-  if (!taskId) throw new Error('Please enter the Task ID.');
-  const sh = getSheet_(LOG);
-  const log = rows_(sh);
-  if (log.some(r => clean_(r[2]) === mem.id && r[C_.STATUS] === 'In Progress')) {
-    throw new Error('You already have a task in progress. Submit or delete it first.');
-  }
-  const same = log.filter(r => clean_(r[C_.TASK]) === taskId && String(r[4]) === mem.role);
-  if (same.some(r => r[C_.STATUS] === 'In Progress')) throw new Error('Task ' + taskId + ' is already in progress by another member.');
-  if (type === 'New' && same.some(r => r[C_.STATUS] === 'Submitted')) {
-    throw new Error('Task ' + taskId + ' is already submitted. If it came back for rework choose "Rework".');
-  }
-  const now = new Date();
-  writeRow_(sh, LOG, lastDataRow_(sh) + 1, [
-    'L' + now.getTime(), today_(), mem.id, mem.name, mem.role, type, taskId, '', '',
-    now, '', '', '', '', '', '', '', '', '', 'In Progress', '', ''
-  ]);
-  return status_(mem);
+const n = v => Number(v || 0).toLocaleString('en-US');
+const fmtTime = iso => iso ? new Date(iso).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) : '—';
+const pad = x => String(x).padStart(2,'0');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function msHint(ms){
+  ms = Number(ms); if (!ms || ms < 0) return '';
+  const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+  return '≈ ' + (h ? h + 'h ' : '') + m + 'm ' + sec + 's';
 }
+const roleName = r => r === 'TR' ? 'Transcriber · TR' : r === 'QA' ? 'Quality Assurance · QA' : r;
+const findTask = id => (state && state.tasks.find(t => t.logId === id)) || (hist && hist.tasks.find(t => t.logId === id));
+const fmtDay = k => new Date(k + 'T12:00:00').toLocaleDateString([], { weekday:'short', day:'numeric', month:'short', year:'numeric' });
 
-function save_(mem, d, mode) {
-  const vMs = num_(d.validMs), vIt = num_(d.validItems), iMs = num_(d.invalidMs), iIt = num_(d.invalidItems);
-  [vMs, vIt, iMs, iIt].forEach(n => {
-    if (!isFinite(n) || n < 0 || Math.floor(n) !== n) throw new Error('Please enter whole numbers for all duration and item fields.');
-  });
-  if (vMs + iMs <= 0) throw new Error('Valid or invalid duration must be more than 0 ms.');
-  if (vIt + iIt <= 0) throw new Error('Valid or invalid audio items must be more than 0.');
+/* ---------- render ---------- */
+function render(s){
+  state = s;
+  const min = s.min || 500;
+  const subm = s.tasks.filter(t => t.status === 'Submitted');
+  const sum = k => subm.reduce((a,t) => a + (t[k] || 0), 0);
+  const items = sum('totalItems'), met = items >= min;
+  const pending = subm.filter(t => !t.verified).length;
+  const noData = s.tasks.find(t => t.status === 'No Data');
 
-  const sh = getSheet_(LOG);
-  const f = findRow_(sh, mem, d.logId);
-  const r = f.row;
-  let end, work;
-  if (mode === 'finish') {
-    if (r[C_.STATUS] !== 'In Progress') throw new Error('This task is already submitted.');
-    end = new Date();
-    work = Math.max(1, Math.round((end - new Date(r[C_.START])) / 60000));
-  } else {
-    if (r[C_.STATUS] !== 'Submitted') throw new Error('Only submitted reports can be edited.');
-    if (r[C_.VER] === true) throw new Error('This report is verified by admin and can no longer be changed.');
-    end = r[C_.END]; work = r[C_.WORK];
-  }
-  sh.getRange(f.rowNum, 7, 1, 16).setValues([[
-    clean_(d.taskId) || r[C_.TASK], String(d.batch || '').trim(), String(d.taskName || '').trim(),
-    r[C_.START], end, work,
-    vMs, round_(vMs / MS_PER_HOUR, 4), vIt,
-    iMs, round_(iMs / MS_PER_HOUR, 4), iIt,
-    vIt + iIt, 'Submitted', false, String(d.notes || '').trim()
-  ]]);
-  afterChange_();
-  return status_(mem);
-}
+  $('avatar').textContent = (s.name || '?').trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+  $('pName').textContent = s.name;
+  $('pId').textContent = 'ID ' + s.memberId;
+  $('pRole').textContent = roleName(s.role || '');
+  $('pRole').classList.toggle('hidden', !s.role);
+  const isQa = s.role === 'QA';
+  document.querySelector('.tabs [data-tab=qa]').classList.add('hidden');   // QA Board is shown inside Today
+  $('tabBar').classList.remove('hidden');
+  if (tab === 'qa') setTab('today');
+  if (isQa && $('vQa').parentNode !== $('vToday')) $('vToday').insertBefore($('vQa'), $('cStart'));
+  $('vQa').classList.toggle('hidden', !(isQa && tab === 'today'));
+  if (isQa && tab === 'today' && !qPoll){ qLoad(); qStart(); }
+  $('today').textContent = new Date().toLocaleDateString([], { day:'numeric', month:'short' });
 
-function remove_(mem, logId) {
-  const sh = getSheet_(LOG);
-  const f = findRow_(sh, mem, logId);
-  if (f.row[C_.VER] === true) throw new Error('This report is verified by admin and can no longer be deleted.');
-  sh.deleteRow(f.rowNum);
-  afterChange_();
-  return status_(mem);
-}
+  $('items').textContent = n(items);
+  $('ofMin').textContent = '/ ' + n(min) + ' audio items minimum';
+  $('bar').classList.toggle('done', met);
+  $('bar').firstElementChild.style.width = Math.min(100, items / min * 100) + '%';
+  const msg = $('msg'); msg.className = 'msg' + (met ? ' done' : '');
+  msg.textContent = met
+    ? (items > min ? 'Daily minimum reached · +' + n(items - min) + ' extra items. Great work!' : 'Daily minimum reached. You can take more tasks if you want.')
+    : (noData && !subm.length ? 'You reported no data in the pool today.' : n(min - items) + ' audio items left to reach today\'s minimum.');
+  $('sTasks').textContent = subm.length;
+  $('sValid').textContent = n(sum('validMs'));  $('sValidI').textContent = n(sum('validItems')) + ' items';
+  $('sInvalid').textContent = n(sum('invalidMs')); $('sInvalidI').textContent = n(sum('invalidItems')) + ' items';
+  $('pendNote').textContent = pending + (pending === 1 ? ' report is' : ' reports are') + ' waiting for admin verification. You can still edit or delete ' + (pending === 1 ? 'it.' : 'them.');
+  $('pendNote').classList.toggle('hidden', !pending);
 
-function noData_(mem, notes) {
-  const sh = getSheet_(LOG);
-  const day = today_();
-  const mine = rows_(sh).filter(r => clean_(r[2]) === mem.id);
-  if (mine.some(r => r[C_.STATUS] === 'In Progress')) throw new Error('You have a task in progress. Submit or delete it first.');
-  if (mine.some(r => dateKey_(r[1]) === day && r[C_.STATUS] === 'No Data')) throw new Error('You have already reported "No data in the pool" today.');
-  const now = new Date();
-  writeRow_(sh, LOG, lastDataRow_(sh) + 1, [
-    'L' + now.getTime(), day, mem.id, mem.name, mem.role, 'No Data', '', '', '',
-    now, now, '', '', '', '', '', '', '', '', 'No Data', false, notes || 'No data in the pool'
-  ]);
-  afterChange_();
-  return status_(mem);
-}
-
-function findRow_(sh, mem, logId) {
-  const log = rows_(sh);
-  const i = log.findIndex(r => String(r[0]) === String(logId) && clean_(r[2]) === mem.id);
-  if (i < 0) throw new Error('Report not found. It may have been deleted. Please refresh.');
-  return { row: log[i], rowNum: i + 2 };
-}
-
-/* ================= Daily Report (rebuilt from Task Log) ================= */
-
-function rebuildDaily_() {
-  const groups = {}, mem = allMembers_();
-  rows_(getSheet_(LOG)).forEach(r => {
-    const id = clean_(r[2]); if (!id) return;
-    const day = dateKey_(r[1]), key = day + '|' + id;
-    const g = groups[key] || (groups[key] = { day, id, name: mem[id] ? mem[id].name : r[3], role: mem[id] ? mem[id].role : r[4], tasks: 0, ver: 0, pend: 0, vMs: 0, iMs: 0, items: 0, work: 0, open: false, nodata: false, bTasks: 0, bItems: 0, bvMs: 0, biMs: 0 });
-    const st = r[C_.STATUS];
-    if (st === 'Submitted') {
-      g.tasks++; g.items += Number(r[C_.TOTAL]) || 0; g.work += Number(r[C_.WORK]) || 0;
-      if (r[C_.VER] === true) { g.ver++; g.vMs += Number(r[C_.VMS]) || 0; g.iMs += Number(r[C_.IMS]) || 0; }
-      else g.pend++;
-      if (r[C_.TYPE] === QA_BOARD_TYPE) {
-        g.bTasks++; g.bItems += Number(r[C_.TOTAL]) || 0;
-        if (r[C_.VER] === true) { g.bvMs += Number(r[C_.VMS]) || 0; g.biMs += Number(r[C_.IMS]) || 0; }
-      }
-    } else if (st === 'In Progress') g.open = true;
-    else if (st === 'No Data') g.nodata = true;
-  });
-  const out = Object.keys(groups).map(k => groups[k])
-    .sort((a, b) => a.day < b.day ? 1 : a.day > b.day ? -1
-      : a.role !== b.role ? (a.role === 'TR' ? -1 : 1) : String(a.name).localeCompare(String(b.name)))
-    .map(g => [
-      g.day, g.id, g.name, g.role, g.tasks, g.ver, g.pend,
-      g.vMs, round_(g.vMs / MS_PER_HOUR, 4), g.iMs, round_(g.iMs / MS_PER_HOUR, 4),
-      g.items, round_(g.work / 60, 2),
-      g.items >= minFor_(g.role, g.day) ? 'Target Met' : g.open ? 'Working' : g.tasks ? 'Below Target' : g.nodata ? 'No Data in Pool' : '-',
-      g.bTasks, g.bItems, round_(g.bvMs / MS_PER_HOUR, 4), round_(g.biMs / MS_PER_HOUR, 4)
-    ]);
-  const sh = getSheet_(DAILY);
-  const cols = DAILY.head.length;
-  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, Math.max(cols, sh.getLastColumn())).clearContent();
-  if (!out.length) return;
-  if (out.length + 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), out.length + 1 - sh.getMaxRows());
-  const rg = sh.getRange(2, 1, out.length, cols);
-  rg.setNumberFormats(out.map(() => DAILY.fmt));
-  rg.setValues(out);
-}
-
-/** Installed by setup(): runs when you tick Verified, delete rows or edit Task Log. */
-function onSheetChange() { rebuildDaily_(); syncOverviewMembers_(); }
-
-/** Menu: re-reads roles from ID Details and rebuilds Daily Report. */
-function refreshAll() {
-  fixLogRoles_(); rebuildDaily_(); syncOverviewMembers_();
-  try { SpreadsheetApp.getActive().toast('Daily Report and Overview updated.', 'Speech Ocean', 4); } catch (e) {}
-}
-
-/** Updates reports after a portal action. Errors are logged, never shown to the member. */
-function afterChange_() {
-  try { rebuildDaily_(); } catch (e) { console.error('rebuildDaily_ failed: ' + (e.stack || e)); }
-  try { syncOverviewMembers_(); } catch (e) { console.error('syncOverviewMembers_ failed: ' + (e.stack || e)); }
-}
-
-/* ================= Overview (live formulas) ================= */
-
-function buildOverview() {
-  const ss = book_();
-  buildOverviewFor_('QA', 'QA Overview', 0);
-  buildOverviewFor_('TR', 'TR Overview', 0);
-  const old = ss.getSheetByName('Overview');
-  if (old) ss.deleteSheet(old);
-  try { ss.setActiveSheet(ss.getSheetByName('TR Overview')); } catch (e) {}
-}
-
-function buildOverviewFor_(ROLE, NAME, pos) {
-  const ss = book_();
-  let sh = ss.getSheetByName(NAME);
-  if (!sh) sh = ss.insertSheet(NAME, pos);
-  sh.clear();
-  sh.setConditionalFormatRules([]);
-  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).clearDataValidations();
-  sh.setFrozenRows(0); sh.setFrozenColumns(0);
-  sh.setHiddenGridlines(true);
-
-  const idSh = idSheet_(), c = idCols_(idSh);
-  const ID = "'" + idSh.getName() + "'!";
-  const idCol = i => ID + '$' + letter_(i + 1) + ':$' + letter_(i + 1);
-  const L = "'" + LOG.name + "'!", D = "'" + DAILY.name + "'!";
-  const R0 = 9, N = CONFIG.OVERVIEW_ROWS, R1 = R0 + N - 1, COLS = 20;
-  const KEY = 'TEXT($B$4,"yyyy-mm-dd")';
-  const lc = col => L + '$' + col + ':$' + col;
-  const dc = col => D + '$' + col + ':$' + col;
-
-  if (sh.getMaxColumns() < COLS) sh.insertColumnsAfter(sh.getMaxColumns(), COLS - sh.getMaxColumns());
-  if (sh.getMaxColumns() > COLS) sh.deleteColumns(COLS + 1, sh.getMaxColumns() - COLS);
-  if (sh.getMaxRows() < R1 + 2) sh.insertRowsAfter(sh.getMaxRows(), R1 + 2 - sh.getMaxRows());
-  [110, 180, 55, 125, 60, 70, 85, 110, 115, 80, 24, 65, 110, 115, 85, 80, 95, 85, 105, 115]
-    .forEach((w, i) => sh.setColumnWidth(i + 1, w));
-  sh.getRange(1, 1, R1, COLS).setFontFamily('Arial').setFontSize(10).setFontColor(INK).setVerticalAlignment('middle');
-
-  // Title + controls
-  sh.getRange('A1').setValue('Speech Ocean').setFontSize(18).setFontWeight('bold').setFontColor(NAVY);
-  sh.getRange('A2').setValue('Indonesia #1  ·  ' + (ROLE === 'QA' ? 'QA (Quality Assurance)' : 'TR (Transcription)') + ' Overview').setFontColor(MUTED).setFontSize(11);
-  sh.setRowHeight(1, 34);
-  sh.getRange('A4').setValue('Date').setFontColor(MUTED).setFontSize(9);
-  sh.getRange('B4').setFormula('=TODAY()').setNumberFormat('ddd, dd mmm yyyy')
-    .setFontWeight('bold').setFontColor(BLUE).setBackground('#EEF5FB')
-    .setBorder(true, true, true, true, false, false, '#BFD9F5', null)
-    .setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).build())
-    .setNote('Type any date (e.g. 2026-10-14) to see that day. Type =TODAY() to go back to today.');
-  sh.getRange('A5').setValue('Daily Target').setFontColor(MUTED).setFontSize(9);
-  const tf = CONFIG.TARGETS.reduce((acc, x) =>
-    'IF($B$4>=DATE(' + x.from.replace(/-0?/g, ',') + '),' + (ROLE === 'QA' ? x.QA : x.TR) + ',' + acc + ')', String(ROLE === 'QA' ? CONFIG.TARGETS[0].QA : CONFIG.TARGETS[0].TR));
-  sh.getRange('B5').setFormula('=' + tf).setNumberFormat('#,##0" items"').setFontWeight('bold').setFontColor(BLUE);
-
-  // KPI cards
-  const rng = col => col + R0 + ':' + col + R1;
-  [
-    ['D', 'Members', '=COUNTIF(' + rng('A') + ',"?*")', '0', NAVY],
-    ['E', 'Started', '=COUNTIFS(' + rng('A') + ',"?*",' + rng('D') + ',"<>Not Started",' + rng('D') + ',"<>No Data in Pool")', '0', NAVY],
-    ['F', 'Target Met', '=COUNTIF(' + rng('D') + ',"Target Met")', '0', '#1E7A4C'],
-    ['G', 'Not Started', '=COUNTIF(' + rng('D') + ',"Not Started")', '0', '#B3261E'],
-    ['H', 'No Data', '=COUNTIF(' + rng('D') + ',"No Data in Pool")', '0', MUTED],
-    ['I', 'Pending Review', '=SUM(' + rng('F') + ')', '0', '#9A6300'],
-    ['J', 'Verified Hrs', '=SUM(' + rng('H') + ')', '0.00', NAVY],
-    ['L', 'Tasks', '=SUM(' + rng('L') + ')', '#,##0', NAVY],
-    ['M', 'Verified Hrs', '=SUM(' + rng('M') + ')', '0.00', NAVY],
-    ['N', 'Pending Review', '=SUMPRODUCT(COUNTIFS(' + lc('C') + ',' + rng('A') + ',' + lc('T') + ',"Submitted",' + lc('U') + ',FALSE)*(' + rng('A') + '<>""))', '0', '#9A6300'],
-    ['O', 'Audio Items', '=SUM(' + rng('O') + ')', '#,##0', NAVY]
-  ].forEach(([col, label, f, nf, color]) => {
-    sh.getRange(col + '4').setValue(label).setFontSize(8).setFontColor(MUTED).setFontWeight('bold');
-    sh.getRange(col + '5').setFormula(f).setNumberFormat(nf).setFontSize(16).setFontWeight('bold').setFontColor(color);
-  });
-  sh.setRowHeight(5, 30);
-  sh.getRange('D3').setFormula('="SELECTED DAY · "&UPPER(TEXT($B$4,"dd mmm"))').setFontSize(8).setFontColor(MUTED).setFontWeight('bold');
-  sh.getRange('L3').setValue('ALL TIME').setFontSize(8).setFontColor(MUTED).setFontWeight('bold');
-
-  // Section titles + headers
-  sh.getRange('A7').setFormula('="DAILY OVERVIEW  ·  "&UPPER(TEXT($B$4,"dd mmm yyyy"))').setFontWeight('bold').setFontSize(9).setFontColor(BLUE);
-  sh.getRange('L7').setValue('LIFETIME OVERVIEW').setFontWeight('bold').setFontSize(9).setFontColor(BLUE);
-  const hd = ['Member ID', 'Name', 'Role', 'Status', 'Tasks', 'Pending Review', 'Total Items', 'Verified Valid Hrs', 'Verified Invalid Hrs', 'Work Hours'];
-  const hl = ['Tasks', 'Verified Valid Hrs', 'Verified Invalid Hrs', 'Total Items', 'Days Worked', 'Days Target Met', 'No-Data Days', 'Avg Valid Hrs / Day', 'Last Active'];
-  sh.getRange(8, 1, 1, 10).setValues([hd]).setBackground(NAVY);
-  sh.getRange(8, 12, 1, 9).setValues([hl]).setBackground(BLUE);
-  sh.getRange(8, 1, 1, COLS).setFontColor('#FFFFFF').setFontWeight('bold').setFontSize(9).setHorizontalAlignment('center').setWrap(true);
-  sh.getRange('K8').setBackground(null);
-  sh.setRowHeight(8, 36);
-
-  // Row formulas
-  const rows = [];
-  for (let r = R0; r <= R1; r++) {
-    const A = '$A' + r, blank = 'IF(' + A + '="","",';
-    const pick = i => i < 0 ? A : 'IFERROR(INDEX(' + idCol(i) + ',MATCH(' + A + ',' + idCol(c.id) + ',0)),' + A + ')';
-    const day = lc('C') + ',' + A + ',' + lc('B') + ',' + KEY;
-    const sub = day + ',' + lc('T') + ',"Submitted"';
-    const ver = day + ',' + lc('U') + ',TRUE';
-    rows.push([
-      '',
-      '=' + blank + (c.nameAlt >= 0
-        ? 'IF(' + pick(c.name) + '="",' + pick(c.nameAlt) + ',' + pick(c.name) + ')'
-        : pick(c.name)) + ')',
-      '=' + blank + '"' + ROLE + '")',
-      '=' + blank + 'IF(COUNTIFS(' + day + ',' + lc('T') + ',"In Progress")>0,"Working",IF(G' + r + '>=$B$5,"Target Met",IF(E' + r + '>0,"Below Target",IF(COUNTIFS(' + day + ',' + lc('T') + ',"No Data")>0,"No Data in Pool","Not Started")))))',
-      '=' + blank + 'COUNTIFS(' + sub + '))',
-      '=' + blank + 'COUNTIFS(' + sub + ',' + lc('U') + ',FALSE))',
-      '=' + blank + 'SUMIFS(' + lc('S') + ',' + sub + '))',
-      '=' + blank + 'SUMIFS(' + lc('N') + ',' + ver + '))',
-      '=' + blank + 'SUMIFS(' + lc('Q') + ',' + ver + '))',
-      '=' + blank + 'SUMIFS(' + lc('L') + ',' + sub + ')/60)',
-      '',
-      '=' + blank + 'COUNTIFS(' + lc('C') + ',' + A + ',' + lc('T') + ',"Submitted"))',
-      '=' + blank + 'SUMIFS(' + lc('N') + ',' + lc('C') + ',' + A + ',' + lc('U') + ',TRUE))',
-      '=' + blank + 'SUMIFS(' + lc('Q') + ',' + lc('C') + ',' + A + ',' + lc('U') + ',TRUE))',
-      '=' + blank + 'SUMIFS(' + lc('S') + ',' + lc('C') + ',' + A + ',' + lc('T') + ',"Submitted"))',
-      '=' + blank + 'COUNTIFS(' + dc('B') + ',' + A + ',' + dc('E') + ',">0"))',
-      '=' + blank + 'COUNTIFS(' + dc('B') + ',' + A + ',' + dc('N') + ',"Target Met"))',
-      '=' + blank + 'COUNTIFS(' + dc('B') + ',' + A + ',' + dc('N') + ',"No Data in Pool"))',
-      '=' + blank + 'IF(P' + r + '=0,0,M' + r + '/P' + r + '))',
-      '=' + blank + 'IF(COUNTIF(' + lc('C') + ',' + A + ')=0,"-",MAXIFS(' + lc('J') + ',' + lc('C') + ',' + A + ')))'
-    ]);
-  }
-  sh.getRange(R0, 1, N, COLS).setFormulas(rows).setHorizontalAlignment('center')
-    .setBorder(null, null, null, null, null, true, LINE, SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange(R0, 2, N, 1).setHorizontalAlignment('left');
-  sh.getRange('K' + R0 + ':K' + R1).setBorder(false, false, false, false, false, false);
-  [['E', '0'], ['F', '0'], ['G', '#,##0'], ['H', '0.00'], ['I', '0.00'], ['J', '0.0'],
-   ['L', '#,##0'], ['M', '0.00'], ['N', '0.00'], ['O', '#,##0'], ['P', '0'], ['Q', '0'], ['R', '0'], ['S', '0.00'], ['T', 'dd mmm yyyy']]
-    .forEach(([col, f]) => sh.getRange(col + R0 + ':' + col + R1).setNumberFormat(f));
-  ['G', 'H', 'M'].forEach(col => sh.getRange(col + R0 + ':' + col + R1).setFontWeight('bold'));
-
-  const st = sh.getRange('D' + R0 + ':D' + R1), pend = sh.getRange('F' + R0 + ':F' + R1);
-  const rule = (txt, bg, fg) => SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(txt)
-    .setBackground(bg).setFontColor(fg).setBold(true).setRanges([st]).build();
-  sh.setConditionalFormatRules([
-    rule('Target Met', '#DDF3E6', '#1E7A4C'), rule('Working', '#DCEBFF', '#1F5FBF'),
-    rule('Below Target', '#FFF1D1', '#9A6300'), rule('Not Started', '#FBE2E0', '#B3261E'),
-    rule('No Data in Pool', '#ECEFF3', '#5D6B7B'),
-    SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0).setFontColor('#9A6300').setBold(true).setRanges([pend]).build()
-  ]);
-
-  sh.setFrozenRows(8);
-  sh.setFrozenColumns(2);
-  sh.setTabColor(ROLE === 'QA' ? '#6B3FA0' : BLUE);
-  syncOverviewMembers_();
-}
-
-/** Writes the member IDs (by role) into column A of TR Overview and QA Overview. */
-function syncOverviewMembers_() {
-  const ss = book_(), mem = allMembers_(), N = CONFIG.OVERVIEW_ROWS, R0 = 9;
-  [['TR', 'TR Overview'], ['QA', 'QA Overview']].forEach(([role, name]) => {
-    const sh = ss.getSheetByName(name); if (!sh) return;
-    const ids = Object.keys(mem).filter(id => mem[id].active && mem[id].role === role)
-      .sort((a, b) => mem[a].row - mem[b].row).slice(0, N);
-    const vals = [];
-    for (let i = 0; i < N; i++) vals.push([ids[i] || '']);
-    sh.getRange(R0, 1, N, 1).setNumberFormat('@').setValues(vals);
-  });
-}
-
-/* ================= Setup & menu ================= */
-
-function setup() {
-  const ss = book_();
-  ss.setSpreadsheetTimeZone(CONFIG.TIMEZONE);
-  salt_();
-  ensureSheet_(LOG);
-  ensureSheet_(DAILY);
-  formatIdSheet_();
-  fixLogRoles_();
-  rebuildDaily_();
-  buildOverview();
-  PropertiesService.getScriptProperties().setProperty('VERSION', VERSION);
-  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger('onSheetChange').forSpreadsheet(ss).onChange().create();
-  ensureQaSheets_();
-  ScriptApp.newTrigger('qaAutoReleaseJob').timeBased().everyMinutes(30).create();
-  ['Sheet1', 'Members'].forEach(n => {
-    const s = ss.getSheetByName(n);
-    if (s && (n === 'Sheet1' ? s.getLastRow() === 0 : s.getRange(1, 1).getValue() === 'Member ID' && s.getRange(1, 5).getValue() === 'Today Status')) ss.deleteSheet(s);
-  });
-}
-
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Speech Ocean')
-    .addItem('Daily Group Report', 'groupReport')
-    .addSeparator()
-    .addItem('Rebuild Overview', 'buildOverview')
-    .addItem('Refresh Daily Report', 'refreshAll')
-    .addSeparator()
-    .addItem('QA Board: import QA accounts from ID Details', 'qaImportAccounts')
-    .addItem('QA Board: release expired claims now', 'qaReleaseExpiredNow')
-    .addItem('QA Board: mark tasks not on the platform', 'qaAdminMarkTaken')
-    .addItem('QA Board: put tasks back in the pool', 'qaAdminRestore')
-    .addSeparator()
-    .addItem('Clear ALL data (testing)', 'clearAllData')
-    .addItem('Run setup', 'setup')
-    .addToUi();
-}
-
-function clearAllData() {
-  const ui = SpreadsheetApp.getUi();
-  const ok = ui.alert('Clear ALL data?', 'This deletes every row in Task Log and Daily Report.\nID Details is not touched. This cannot be undone.', ui.ButtonSet.YES_NO);
-  if (ok !== ui.Button.YES) return;
-  [LOG, DAILY].forEach(def => {
-    const sh = getSheet_(def);
-    if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, def.head.length).clearContent();
-  });
-  ui.alert('Done. All task data has been cleared.');
-}
-
-/* ================= Sheets ================= */
-
-function getSheet_(def) {
-  const sh = book_().getSheetByName(def.name);
-  if (sh && headerOk_(sh, def.head)) return sh;
-  return ensureSheet_(def);
-}
-
-function headerOk_(sh, head) {
-  const n = Math.min(head.length, sh.getMaxColumns());
-  return sh.getRange(1, 1, 1, n).getValues()[0].map(String).join('|') === head.join('|');
-}
-
-/** Creates the tab, upgrades an older layout (keeping data) and applies formatting. */
-function ensureSheet_(def) {
-  const ss = book_();
-  let sh = ss.getSheetByName(def.name);
-  let carry = [];
-  // Safety: never delete, rename or clear an existing tab that already has data. Only fix the header + formatting.
-  const safe = sh && sh.getLastRow() > 1;
-  if (sh && !safe && !headerOk_(sh, def.head)) {
-    const old = sh.getLastRow() > 1 ? rows_(sh) : [];
-    let rest = [];
-    if (def === LOG && headerOk_(sh, V3_HEAD)) {
-      carry = old.map(r => r.slice(0, 5).concat(['New'], r.slice(5, 18),
-        [r[18] === 'Completed' ? 'Submitted' : r[18], r[18] === 'Completed' ? false : '', r[19]]));
-    } else if (def === LOG) {
-      carry = old.filter(r => r.length >= 22 && ['Submitted', 'In Progress', 'No Data'].indexOf(r[19]) >= 0).map(r => r.slice(0, 22));
-      rest = old.filter(r => !(r.length >= 22 && ['Submitted', 'In Progress', 'No Data'].indexOf(r[19]) >= 0));
+  // which card?
+  const editing = editId && findTask(editId);
+  if (editId && (!editing || editing.verified || editing.status !== 'Submitted')) editId = null;
+  clearInterval(tick);
+  const form = $('fResult');
+  if (editId){
+    const t = findTask(editId);
+    $('cForm').classList.remove('hidden'); $('cForm').classList.add('edit'); $('cStart').classList.add('hidden');
+    $('headLive').classList.add('hidden'); $('headEdit').classList.remove('hidden');
+    $('btnsLive').classList.add('hidden'); $('btnsEdit').classList.remove('hidden');
+    $('editTitle').textContent = 'Task ' + t.taskId + (t.type === 'Rework' ? ' · Rework' : '') + (t.day && t.day !== s.date ? ' · ' + fmtDay(t.day) : '');
+    if (form.dataset.log !== t.logId){
+      form.dataset.log = t.logId;
+      $('inTaskId').value = t.taskId; $('inBatch').value = t.batch; $('inTaskName').value = t.taskName;
+      $('inVMs').value = t.validMs; $('inVIt').value = t.validItems; $('inIMs').value = t.invalidMs; $('inIIt').value = t.invalidItems;
+      $('inNotes').value = t.notes; updateHints();
     }
-    if (rest.length) sh.setName(def.name + ' (old ' + Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'dd MMM HH:mm') + ')');
-    else ss.deleteSheet(sh);
-    sh = null;
-  }
-  if (false && sh && def === LOG && sh.getMaxRows() > 1) {
-    const rg = sh.getRange(2, 1, sh.getMaxRows() - 1, def.head.length);
-    const keep = rg.getValues().filter(r => String(r[0]).trim() !== '');
-    rg.clearContent().clearDataValidations();
-    carry = keep.concat(carry);
-  }
-  if (!sh) sh = ss.insertSheet(def.name);
-
-  const cols = def.head.length;
-  if (sh.getMaxColumns() > cols) sh.deleteColumns(cols + 1, sh.getMaxColumns() - cols);
-  if (sh.getMaxColumns() < cols) sh.insertColumnsAfter(sh.getMaxColumns(), cols - sh.getMaxColumns());
-  sh.getRange(1, 1, 1, cols).setValues([def.head])
-    .setFontWeight('bold').setFontColor('#FFFFFF').setBackground(NAVY).setFontSize(9)
-    .setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
-  sh.setRowHeight(1, 36);
-  sh.setFrozenRows(1);
-  def.widths.forEach((w, i) => sh.setColumnWidth(i + 1, w));
-  const max = sh.getMaxRows();
-  sh.getRange(2, 1, max - 1, cols).setFontFamily('Arial').setFontSize(10).setHorizontalAlignment('center');
-  def.fmt.forEach((f, i) => sh.getRange(2, i + 1, max - 1, 1).setNumberFormat(f));
-  sh.setHiddenGridlines(true);
-
-  const rules = [];
-  const paint = (col, map) => {
-    const rng = sh.getRange(2, col, max - 1, 1);
-    Object.keys(map).forEach(t => rules.push(SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t)
-      .setBackground(map[t][0]).setFontColor(map[t][1]).setBold(true).setRanges([rng]).build()));
-  };
-  if (def === LOG) {
-    sh.getRange(2, C_.VER + 1, max - 1, 1).clearDataValidations().setBackground('#FFFBEA');
-    sh.getRange(1, C_.VER + 1).setBackground('#9A6300').setNote('Tick after you check the report on the platform. Verified reports are locked and count as paid hours.');
-    paint(C_.STATUS + 1, { 'Submitted': ['#FFF1D1', '#9A6300'], 'In Progress': ['#DCEBFF', '#1F5FBF'], 'No Data': ['#ECEFF3', '#5D6B7B'] });
-    paint(C_.TYPE + 1, { 'Rework': ['#F3E8FF', '#6B3FA0'], 'QA Board': ['#E6F1F8', '#0B5E8E'] });
-    rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=$U2=TRUE')
-      .setBackground('#EEF8F2').setRanges([sh.getRange(2, 1, max - 1, cols)]).build());
+  } else if (s.open){
+    $('cForm').classList.remove('hidden', 'edit'); $('cStart').classList.add('hidden');
+    $('headLive').classList.remove('hidden'); $('headEdit').classList.add('hidden');
+    $('btnsLive').classList.remove('hidden'); $('btnsEdit').classList.add('hidden');
+    $('liveTask').textContent = s.open.taskId;
+    $('liveRework').classList.toggle('hidden', s.open.type !== 'Rework');
+    $('liveSince').textContent = 'Started at ' + fmtTime(s.open.start);
+    if (form.dataset.log !== s.open.logId){ form.reset(); form.dataset.log = s.open.logId; $('inTaskId').value = s.open.taskId; updateHints(); }
+    const t0 = new Date(s.open.start).getTime();
+    const upd = () => { const d = Math.max(0, Math.floor((Date.now() - t0) / 1000));
+      $('timer').textContent = pad(Math.floor(d/3600)) + ':' + pad(Math.floor(d%3600/60)) + ':' + pad(d%60); };
+    upd(); tick = setInterval(upd, 1000);
   } else {
-    paint(4, { 'TR': ['#E6F1F8', '#0B5E8E'], 'QA': ['#F1E9FB', '#6B3FA0'] });
-    paint(14, { 'Target Met': ['#DDF3E6', '#1E7A4C'], 'Working': ['#DCEBFF', '#1F5FBF'], 'Below Target': ['#FFF1D1', '#9A6300'], 'No Data in Pool': ['#ECEFF3', '#5D6B7B'] });
-    rules.push(SpreadsheetApp.newConditionalFormatRule().whenNumberGreaterThan(0).setFontColor('#9A6300').setBold(true)
-      .setRanges([sh.getRange(2, 7, max - 1, 1)]).build());
+    form.dataset.log = '';
+    $('cForm').classList.add('hidden'); $('cStart').classList.remove('hidden');
+    document.querySelector('#fStart .seg').classList.toggle('hidden', isQa);
+    if (isQa){
+      startType = 'Rework';
+      document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x.dataset.type === 'Rework'));
+      $('reworkNote').classList.add('hidden');
+      $('btnStart')._label = 'Start Rework';
+      if (!$('btnStart').disabled) $('btnStart').innerHTML = 'Start Rework';
+      $('startTitle').textContent = 'Rework a task';
+      $('startSub').textContent = 'New QA tasks come from the QA Board above. Use this only when a task came back from the platform for correction.';
+    } else {
+      $('startTitle').textContent = met ? 'Take another task' : (subm.length ? 'Start your next task' : 'Start a task');
+      $('startSub').textContent = met
+        ? 'You have reached today\'s minimum. Extra tasks are welcome.'
+        : 'Complete at least ' + n(min) + ' audio items today. You can take as many tasks as you like.';
+    }
+    $('noDataBox').classList.toggle('hidden', !!noData);
+    $('noDataInfo').classList.toggle('hidden', !noData);
+    if (noData) $('noDataInfo').innerHTML = '<span>ⓘ</span><span>You reported <b>no data in the pool</b> at ' + fmtTime(noData.start) + '. If tasks appear later you can still start one.</span>';
   }
-  sh.setConditionalFormatRules(rules);
 
-  if (carry.length) {
-    if (carry.length + 1 > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), carry.length + 1 - sh.getMaxRows());
-    const rg = sh.getRange(2, 1, carry.length, cols);
-    rg.setNumberFormats(carry.map(() => def.fmt));
-    rg.setValues(carry);
-    if (def === LOG) sh.getRange(2, C_.VER + 1, carry.length, 1).setDataValidation(CHECKBOX());
+  // list
+  const ul = $('list');
+  if (!s.tasks.length){ ul.innerHTML = '<li class="empty">No reports yet today.</li>'; }
+  else ul.innerHTML = s.tasks.slice().reverse().map(itemHtml).join('');
+  show('vDash');
+}
+
+function itemHtml(t){
+  const rework = t.type === 'Rework' ? '<span class="tag">Rework</span>' : t.type === 'QA Board' ? '<span class="tag" style="color:var(--brand);background:var(--brand-soft)">QA Board</span>' : '';
+  let pill, body = '', acts = '';
+  if (t.status === 'No Data'){
+    pill = t.verified ? '<span class="pill ver">Verified</span>' : '<span class="pill nod">No data</span>';
+    return '<li><div class="lt"><div><b>No data in the pool</b><span class="meta">Reported at ' + fmtTime(t.start) + (t.notes && t.notes !== 'No data in the pool' ? ' · ' + esc(t.notes) : '') + '</span></div>' + pill + '</div>' +
+      (t.verified ? '<div class="locked">✓ Verified by admin</div>' : '<div class="acts"><button class="del" data-del="' + esc(t.logId) + '">Delete</button></div>') + '</li>';
   }
-  return sh;
-}
-
-function formatIdSheet_() {
-  const sh = idSheet_();
-  const cols = Math.max(1, sh.getLastColumn());
-  sh.getRange(1, 1, 1, cols).setFontWeight('bold').setFontColor('#FFFFFF').setBackground(NAVY)
-    .setHorizontalAlignment('center').setVerticalAlignment('middle');
-  sh.setRowHeight(1, 30);
-  sh.setFrozenRows(1);
-  const c = idCols_(sh);
-  [c.id, c.pass].forEach(i => { if (i >= 0) sh.getRange(2, i + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@'); });
-}
-
-function idSheet_() {
-  const ss = book_();
-  const wanted = ['iddetails', 'iddetail', 'idpassword', 'idpass', 'login', 'logins', 'users'];
-  const sheets = ss.getSheets();
-  for (const w of wanted) {
-    const hit = sheets.find(s => norm_(s.getName()) === w);
-    if (hit) return hit;
+  if (t.status === 'In Progress'){
+    pill = '<span class="pill prog">In Progress</span>';
+    acts = '<div class="acts"><button class="del" data-del="' + esc(t.logId) + '">Delete task</button></div>';
+  } else {
+    pill = t.verified ? '<span class="pill ver">Verified</span>' : '<span class="pill pend">Pending review</span>';
+    body = '<div class="lm"><div>Valid<b>' + n(t.validMs) + ' ms</b>' + n(t.validItems) + ' items</div>' +
+      '<div>Invalid<b>' + n(t.invalidMs) + ' ms</b>' + n(t.invalidItems) + ' items</div>' +
+      '<div>Total<b>' + n(t.totalItems) + '</b>items</div></div>';
+    acts = t.verified ? '<div class="locked">✓ Verified by admin · locked</div>'
+      : '<div class="acts"><button data-edit="' + esc(t.logId) + '">Edit</button><button class="del" data-del="' + esc(t.logId) + '">Delete</button></div>';
   }
-  const sh = ss.insertSheet('ID Details');
-  sh.getRange(1, 1, 1, ID_HEAD.length).setValues([ID_HEAD]);
-  return sh;
+  const meta = [t.batch && 'Batch ' + esc(t.batch), esc(t.taskName)].filter(Boolean).join(' · ');
+  return '<li><div class="lt"><div><b>Task ' + esc(t.taskId) + '</b>' + rework + '<span class="meta">' + (meta ? meta + ' · ' : '') +
+    fmtTime(t.start) + ' – ' + (t.end ? fmtTime(t.end) : 'now') + '</span></div>' + pill + '</div>' + body + acts + '</li>';
 }
 
-function idCols_(sh) {
-  const h = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(norm_);
-  const pass = h.findIndex(x => x.indexOf('pass') >= 0 || x === 'pin');
-  let id = h.findIndex((x, i) => i !== pass && (x === 'id' || /(member|user|login|worker|staff)id$/.test(x) || x === 'username'));
-  if (id < 0) id = h.findIndex((x, i) => i !== pass && (x.indexOf('id') === 0 || /id$/.test(x)));
-  const name = h.findIndex((x, i) => i !== id && i !== pass && x.indexOf('name') >= 0 && x !== 'username');
-  const role = h.findIndex(x => x.indexOf('role') >= 0 || x === 'type' || x === 'position' || x === 'designation');
-  const active = h.findIndex(x => x.indexOf('active') >= 0 || x === 'status');
-  const nameAlt = name >= 0 && name + 1 < h.length && !h[name + 1] && [id, pass, role, active].indexOf(name + 1) < 0 ? name + 1 : -1;
-  return { nameAlt: nameAlt, id, pass, name, role, active };
+/* ---------- All time ---------- */
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  $('vToday').classList.toggle('hidden', t !== 'today');
+  $('vAll').classList.toggle('hidden', t !== 'all');
+  const qaToday = !!(state && state.role === 'QA' && t === 'today');
+  $('vQa').classList.toggle('hidden', !qaToday);
+  if (t === 'all') loadHistory();
+  if (qaToday) { qLoad(true); qStart(); } else qStop();
 }
-
-function roleAt_(rowNum, val) {
-  const v = String(val || '').trim().toUpperCase();
-  if (v === 'TR' || v === 'QA') return v;
-  return rowNum >= CONFIG.QA_FROM_ROW ? 'QA' : 'TR';
+async function loadHistory(withToast){
+  if (!hist) $('days').innerHTML = '<li class="empty">Loading…</li>';
+  try { hist = await call('history', {}); renderHistory(); if (withToast) toast('Updated'); }
+  catch(e){ toast(e.message, true); }
 }
-/** Daily minimum for a role on a given day ('yyyy-MM-dd'; default today). */
-function minFor_(role, day) {
-  day = day || today_();
-  let t = CONFIG.TARGETS[0];
-  CONFIG.TARGETS.forEach(x => { if (x.from <= day) t = x; });
-  return role === 'QA' ? t.QA : t.TR;
-}
+function renderHistory(){
+  const min = hist.min || 500;
+  const subm = hist.tasks.filter(t => t.status === 'Submitted');
+  const sum = (arr, k) => arr.reduce((a,t) => a + (t[k] || 0), 0);
+  const byDay = {};
+  hist.tasks.forEach(t => (byDay[t.day] = byDay[t.day] || []).push(t));
+  const keys = Object.keys(byDay).sort().reverse();
+  const dayItems = k => sum(byDay[k].filter(t => t.status === 'Submitted'), 'totalItems');
+  const minOf = k => (hist.mins && hist.mins[k]) || min;
+  const worked = keys.filter(k => byDay[k].some(t => t.status === 'Submitted'));
 
-/** All members from ID Details: { ID: {id, name, role, active, row} } */
-/** Name column; if empty, the next column when it has no header (TR names are kept there). */
-function nameOf_(r, c, id) {
-  if (c.name < 0) return id;
-  const n = String(r[c.name] || '').trim();
-  if (n) return n;
-  if (c.nameAlt >= 0) { const m = String(r[c.nameAlt] || '').trim(); if (m) return m; }
-  return id;
-}
+  $('aTasks').textContent = n(subm.length);
+  const rw = subm.filter(t => t.type === 'Rework').length;
+  $('aRework').textContent = rw ? rw + ' rework' : '';
+  $('aItems').textContent = n(sum(subm, 'totalItems'));
+  $('aValid').textContent = n(sum(subm, 'validMs'));   $('aValidI').textContent = n(sum(subm, 'validItems')) + ' items';
+  $('aInvalid').textContent = n(sum(subm, 'invalidMs')); $('aInvalidI').textContent = n(sum(subm, 'invalidItems')) + ' items';
+  $('aDays').textContent = worked.length;
+  $('aMet').textContent = worked.filter(k => dayItems(k) >= minOf(k)).length;
+  $('aVer').textContent = subm.filter(t => t.verified).length;
+  $('aPend').textContent = subm.filter(t => !t.verified).length;
 
-function allMembers_() {
-  const sh = idSheet_(), c = idCols_(sh), map = {};
-  if (c.id < 0) return map;
-  rows_(sh).forEach((r, i) => {
-    const id = clean_(r[c.id]); if (!id || map[id]) return;
-    map[id] = {
-      id, row: i + 2,
-      name: nameOf_(r, c, id),
-      role: roleAt_(i + 2, c.role >= 0 ? r[c.role] : ''),
-      active: c.active < 0 || String(r[c.active]).trim().toLowerCase() !== 'no',
-      pass: c.pass >= 0 ? String(r[c.pass]).trim() : ''
-    };
-  });
-  return map;
-}
-
-function member_(id) {
-  const c = idCols_(idSheet_());
-  if (c.id < 0 || c.pass < 0) throw new Error('Setup problem: the ID Details sheet needs "ID" and "Password" columns.');
-  return allMembers_()[id] || null;
-}
-
-/* ================= Helpers ================= */
-
-function book_() {
-  if (CONFIG.SHEET_ID) return SpreadsheetApp.openById(CONFIG.SHEET_ID);
-  const ss = SpreadsheetApp.getActive();
-  if (!ss) throw new Error('Script is not linked to a Google Sheet. Open the Sheet > Extensions > Apps Script or set SHEET_ID.');
-  return ss;
-}
-
-/** Last row that has a Log ID / Date in column A (ignores empty checkbox rows). */
-function lastDataRow_(sh) {
-  const n = sh.getLastRow();
-  if (n < 2) return 1;
-  const a = sh.getRange(1, 1, n, 1).getValues();
-  for (let i = n - 1; i >= 1; i--) if (String(a[i][0]).trim() !== '') return i + 1;
-  return 1;
-}
-
-/** Runs once after each code update: tidies Task Log, rebuilds Daily Report and Overview. */
-function upgrade_() {
-  const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('VERSION') === VERSION) return;
-  ensureSheet_(LOG);
-  ensureSheet_(DAILY);
-  fixLogRoles_();
-  rebuildDaily_();
-  buildOverview();
-  ensureQaSheets_();
-  try { markBoardReports_(); qaClaimsFormat_(); rebuildDaily_(); } catch (e) { console.error(e); }
-  props.setProperty('VERSION', VERSION);
-}
-
-/** Writes the correct TR / QA role into Task Log from ID Details. */
-function fixLogRoles_() {
-  const sh = getSheet_(LOG), n = lastDataRow_(sh);
-  if (n < 2) return;
-  const mem = allMembers_();
-  const rg = sh.getRange(2, 3, n - 1, 3), v = rg.getValues();
-  let changed = false;
-  v.forEach(r => { const m = mem[clean_(r[0])]; if (m && r[2] !== m.role) { r[2] = m.role; changed = true; } });
-  if (changed) rg.setValues(v);
-}
-
-function writeRow_(sh, def, row, vals) {
-  if (row > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), 200);
-  const rng = sh.getRange(row, 1, 1, vals.length);
-  rng.setFontColor(INK).setFontWeight('normal').setFontSize(10).setWrap(false).setHorizontalAlignment('center')
-    .setBorder(false, false, true, false, false, false, LINE, null);
-  rng.setNumberFormats([def.fmt]);
-  rng.setValues([vals]);
-  if (def === LOG) sh.getRange(row, C_.VER + 1).setDataValidation(CHECKBOX());
-}
-
-function rows_(sh) {
-  const n = sh.getName() === LOG.name ? lastDataRow_(sh) : sh.getLastRow();
-  return n < 2 ? [] : sh.getRange(2, 1, n - 1, Math.max(1, sh.getLastColumn())).getValues();
-}
-
-function task_(r) {
-  return {
-    logId: String(r[0]), day: dateKey_(r[1]), type: String(r[C_.TYPE] || 'New'), taskId: String(r[C_.TASK]),
-    batch: String(r[7]), taskName: String(r[8]),
-    start: isDate_(r[C_.START]) ? r[C_.START].toISOString() : null,
-    end: isDate_(r[C_.END]) ? r[C_.END].toISOString() : null,
-    workMin: Number(r[C_.WORK]) || 0,
-    validMs: Number(r[C_.VMS]) || 0, validItems: Number(r[C_.VIT]) || 0,
-    invalidMs: Number(r[C_.IMS]) || 0, invalidItems: Number(r[C_.IIT]) || 0,
-    totalItems: Number(r[C_.TOTAL]) || 0, status: String(r[C_.STATUS] || ''),
-    verified: r[C_.VER] === true, notes: String(r[C_.NOTES] || '')
-  };
-}
-
-function num_(v) { return v === '' || v == null ? NaN : Number(String(v).replace(/[,\s]/g, '')); }
-function round_(n, d) { const p = Math.pow(10, d); return Math.round(n * p) / p; }
-function letter_(n) { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
-function norm_(s) { return String(s || '').toLowerCase().replace(/[^a-z]/g, ''); }
-function isDate_(v) { return Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v); }
-function dateKey_(v) { return isDate_(v) ? Utilities.formatDate(v, CONFIG.TIMEZONE, 'yyyy-MM-dd') : String(v || ''); }
-function today_() { return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd'); }
-function clean_(s) { return String(s || '').replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim().toUpperCase(); }
-function out_(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
-
-
-/* ================= Daily Group Report (for WhatsApp / Telegram) ================= */
-
-/** Menu: opens the report for today. Change the date inside the dialog. */
-function groupReport() {
-  const html = HtmlService.createHtmlOutput(GROUP_REPORT_HTML_.replace('__TODAY__', today_()))
-    .setWidth(560).setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Daily Group Report');
-}
-
-/** Called from the dialog. day = 'yyyy-MM-dd'. Returns TR and QA sections. */
-function getGroupReport(day) {
-  day = /^\d{4}-\d{2}-\d{2}$/.test(String(day)) ? String(day) : today_();
-  const mem = allMembers_();
-  const stats = {};
-  Object.keys(mem).forEach(id => { if (mem[id].active) stats[id] = { tasks: 0, rework: 0, items: 0, open: false, nodata: false }; });
-  rows_(getSheet_(LOG)).forEach(r => {
-    if (dateKey_(r[1]) !== day) return;
-    const s = stats[clean_(r[2])]; if (!s) return;
-    const st = r[C_.STATUS];
-    if (st === 'Submitted') {
-      s.tasks++; s.items += Number(r[C_.TOTAL]) || 0;
-      if (r[C_.TYPE] === 'Rework') s.rework++;
-    } else if (st === 'In Progress') s.open = true;
-    else if (st === 'No Data') s.nodata = true;
-  });
-
-  const section = role => {
-    const min = minFor_(role, day);
-    const list = Object.keys(stats).filter(id => mem[id].role === role)
-      .map(id => Object.assign({ name: mem[id].name, id: id }, stats[id]));
-    const byItems = (a, b) => b.items - a.items || a.name.localeCompare(b.name);
-    const byName = (a, b) => a.name.localeCompare(b.name);
-    return {
-      role: role, min: min, total: list.length,
-      items: list.reduce((a, x) => a + x.items, 0),
-      tasks: list.reduce((a, x) => a + x.tasks, 0),
-      groups: {
-        met: list.filter(x => x.items >= min).sort(byItems),
-        below: list.filter(x => x.items > 0 && x.items < min).sort(byItems),
-        working: list.filter(x => x.items === 0 && x.open).sort(byName),
-        nodata: list.filter(x => x.items === 0 && !x.open && x.nodata).sort(byName),
-        none: list.filter(x => x.items === 0 && !x.open && !x.nodata).sort(byName)
-      }
-    };
-  };
-
-  return {
-    day: day,
-    label: Utilities.formatDate(new Date(day + 'T12:00:00'), CONFIG.TIMEZONE, 'EEEE, dd MMM yyyy'),
-    sections: [section('TR'), section('QA')]
-  };
-}
-
-const GROUP_REPORT_HTML_ = `<!doctype html>
-<html><head><base target="_top">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font:14px/1.45 Inter,Arial,sans-serif;color:#0F1E2E;background:#F2F5F8}
-.bar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;background:#fff;border-bottom:1px solid #E2E8EF}
-.bar input,.bar select{padding:7px 9px;border:1px solid #D5DCE4;border-radius:8px;font:inherit;background:#fff}
-.bar button{padding:8px 12px;border:0;border-radius:8px;font:600 13px Inter,Arial,sans-serif;cursor:pointer;background:#E6F1F8;color:#0B5E8E}
-.bar button.pri{background:#0B5E8E;color:#fff}
-.bar .sp{flex:1}
-.wrap{padding:14px}
-#card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(15,30,46,.08);width:500px;margin:0 auto}
-.hd{background:linear-gradient(135deg,#0B3D5C,#0B5E8E);color:#fff;padding:18px 20px}
-.hd b{font-size:17px;display:block}
-.hd span{font-size:12.5px;opacity:.85}
-.hd .dt{margin-top:10px;font-size:15px;font-weight:600;opacity:1}
-.role{margin:16px 16px 0;padding:10px 14px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}
-.role.TR{background:#E6F1F8;color:#0B5E8E}
-.role.QA{background:#F1E9FB;color:#6B3FA0}
-.role small{font-weight:600;font-size:12px;opacity:.85}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px 16px 4px}
-.k{background:#F2F5F8;border-radius:10px;padding:8px 10px}
-.k small{display:block;font-size:10.5px;color:#5D6B7B;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.k b{font-size:18px}
-.sec{padding:8px 16px 2px}
-.sec h4{margin:8px 0 6px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
-.sec h4 i{font-style:normal;font-size:11px;padding:1px 8px;border-radius:99px}
-.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #EEF1F4}
-.row:first-of-type{border-top:0}
-.n{width:20px;color:#8A96A3;font-size:12px;text-align:right}
-.nm{flex:1;min-width:0;font-weight:600}
-.v{font-variant-numeric:tabular-nums;text-align:right;font-size:13px}
-.v small{display:block;color:#8A96A3;font-size:11px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:6px}
-.chip{background:#F2F5F8;border-radius:99px;padding:3px 10px;font-size:12.5px}
-.empty{color:#8A96A3;font-size:13px;padding:10px 16px}
-.ft{padding:12px 16px 16px;color:#8A96A3;font-size:11.5px;text-align:center;border-top:1px solid #EEF1F4;margin-top:14px}
-.g{color:#1E7A4C} .gb{background:#DDF3E6;color:#1E7A4C}
-.a{color:#9A6300} .ab{background:#FFF1D1;color:#9A6300}
-.bl{color:#1F5FBF} .blb{background:#DCEBFF;color:#1F5FBF}
-.s{color:#5D6B7B} .sb{background:#ECEFF3;color:#5D6B7B}
-.r{color:#B3261E} .rb{background:#FBE2E0;color:#B3261E}
-textarea{width:500px;display:block;margin:14px auto 0;height:150px;border:1px solid #D5DCE4;border-radius:10px;padding:10px;font:12.5px/1.45 Menlo,Consolas,monospace;resize:vertical}
-.msg{text-align:center;color:#5D6B7B;padding:30px}
-</style></head><body>
-<div class="bar">
-  <input type="date" id="d" value="__TODAY__">
-  <select id="who"><option value="ALL">TR + QA</option><option value="TR">TR only</option><option value="QA">QA only</option></select>
-  <span class="sp"></span>
-  <button id="cp">Copy text</button>
-  <button id="png" class="pri">Download image</button>
-</div>
-<div class="wrap"><div id="out" class="msg">Loading…</div>
-<textarea id="txt" readonly></textarea></div>
-<script>
-var data=null;
-var ROLE_NAME={TR:'Transcription (TR)',QA:'Quality Assurance (QA)'};
-function f(n){return Number(n||0).toLocaleString('en-US')}
-function e(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
-function load(){
-  var o=document.getElementById('out'); o.className='msg'; o.textContent='Loading…';
-  google.script.run.withSuccessHandler(function(d){data=d;draw()}).withFailureHandler(function(err){o.textContent=err.message}).getGroupReport(document.getElementById('d').value);
-}
-function picked(){var w=document.getElementById('who').value;return data.sections.filter(function(s){return w==='ALL'||s.role===w})}
-function rows(list,cls){
-  return list.map(function(x,i){
-    return '<div class="row"><div class="n">'+(i+1)+'</div><div class="nm">'+e(x.name)+'</div><div class="v '+cls+'"><b>'+f(x.items)+'</b> items<small>'+x.tasks+' task'+(x.tasks===1?'':'s')+(x.rework?' · '+x.rework+' rework':'')+'</small></div></div>';
+  if (!keys.length){ $('days').innerHTML = '<li class="empty">No reports yet.</li>'; return; }
+  $('days').innerHTML = keys.map(k => {
+    const list = byDay[k], ds = list.filter(t => t.status === 'Submitted'), items = dayItems(k);
+    const nod = list.some(t => t.status === 'No Data');
+    const pill = ds.length ? (items >= minOf(k) ? '<span class="pill met">Target met</span>' : '<span class="pill low">Below target</span>') : (nod ? '<span class="pill nod">No data</span>' : '');
+    const isOpen = openDay === k;
+    return '<li class="' + (isOpen ? 'open' : '') + '"><button class="dayhead" data-day="' + k + '">' +
+      '<div class="dd"><b>' + (k === hist.today ? 'Today · ' : '') + fmtDay(k) + '</b><span>' + ds.length + ' task' + (ds.length === 1 ? '' : 's') + ' · ' + pill + '</span></div>' +
+      '<div class="num"><b>' + n(items) + '</b>items</div><span class="chev">▶</span></button>' +
+      (isOpen ? '<div class="daybody"><ul class="list">' + list.slice().reverse().map(itemHtml).join('') + '</ul></div>' : '') + '</li>';
   }).join('');
 }
-function chips(list){return '<div class="chips">'+list.map(function(x){return '<span class="chip">'+e(x.name)+'</span>'}).join('')+'</div>'}
-function sec(title,tag,cls,n,html){return '<div class="sec"><h4 class="'+cls+'">'+title+' <i class="'+tag+'">'+n+'</i></h4>'+html+'</div>'}
-function block(S){
-  var g=S.groups, worked=g.met.length+g.below.length;
-  var h='<div class="role '+S.role+'"><span>'+ROLE_NAME[S.role]+'</span><small>'+S.total+' members</small></div>'+
-   '<div class="kpis"><div class="k"><small>Worked</small><b>'+worked+'/'+S.total+'</b></div><div class="k"><small>Target met</small><b class="g">'+g.met.length+'</b></div>'+
-   '<div class="k"><small>Tasks</small><b>'+f(S.tasks)+'</b></div><div class="k"><small>Audio items</small><b>'+f(S.items)+'</b></div></div>';
-  if(!S.total) return h+'<div class="empty">No members in this group.</div>';
-  if(g.met.length) h+=sec('✅ Target met ('+f(S.min)+'+ items)','gb','g',g.met.length,rows(g.met,'g'));
-  if(g.below.length) h+=sec('⚠️ Below target','ab','a',g.below.length,rows(g.below,'a'));
-  if(g.working.length) h+=sec('⏳ Task in progress','blb','bl',g.working.length,chips(g.working));
-  if(g.nodata.length) h+=sec('🚫 No data in the pool','sb','s',g.nodata.length,chips(g.nodata));
-  if(g.none.length) h+=sec('❌ Did not work','rb','r',g.none.length,chips(g.none));
-  return h;
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+$('btnRefreshAll').addEventListener('click', () => loadHistory(true));
+$('days').addEventListener('click', e => {
+  const h = e.target.closest('.dayhead');
+  if (h){ openDay = openDay === h.dataset.day ? null : h.dataset.day; renderHistory(); return; }
+  listAction(e);
+});
+
+function updateHints(){
+  $('hVMs').textContent = msHint($('inVMs').value);
+  $('hIMs').textContent = msHint($('inIMs').value);
+  $('tItems').textContent = n((Number($('inVIt').value) || 0) + (Number($('inIIt').value) || 0));
 }
-function draw(){
-  var secs=picked();
-  var sub=secs.length===1?ROLE_NAME[secs[0].role]+' · Daily Work Report':'Daily Work Report';
-  var h='<div id="card"><div class="hd"><b>Speech Ocean</b><span>Indonesia #1 · '+sub+'</span><div class="dt">'+e(data.label)+'</div></div>';
-  secs.forEach(function(S){h+=block(S)});
-  var mins=secs.map(function(S){return S.role+' '+f(S.min)}).join(' · ');
-  h+='<div class="ft">Daily minimum: '+mins+' audio items · Reports pending admin verification are included</div></div>';
-  var o=document.getElementById('out'); o.className=''; o.innerHTML=h;
-  document.getElementById('txt').value=text(secs);
+['inVMs','inIMs','inVIt','inIIt'].forEach(id => $(id).addEventListener('input', updateHints));
+
+/* ---------- actions ---------- */
+function signOut(){ store.del(KEY); session = null; state = null; editId = null; hist = null; openDay = null; qState = null; qDefaulted = false; setTab('today'); clearInterval(tick); $('fLogin').reset(); show('vLogin'); }
+
+async function load(withToast){
+  session = store.get(KEY);
+  if (!session){ show('vLogin'); return; }
+  try { render(await call('status', {})); if (withToast) toast('Updated'); }
+  catch(e){ if (!state && session) show('vLogin'); toast(e.message, true); }
 }
-function text(secs){
-  var L=[];
-  L.push('*Speech Ocean · Indonesia #1*');
-  L.push('*Daily Work Report — '+data.label+'*');
-  secs.forEach(function(S){
-    var g=S.groups;
-    L.push(''); L.push('━━━━━━━━━━━━━━');
-    L.push('*'+(S.role==='QA'?'🔎 ':'📝 ')+ROLE_NAME[S.role]+'*');
-    L.push('👥 Worked: '+(g.met.length+g.below.length)+'/'+S.total+'  |  ✅ Target met: '+g.met.length);
-    L.push('📦 Tasks: '+f(S.tasks)+'  |  🎧 Audio items: '+f(S.items));
-    function list(t,arr,num){ if(!arr.length)return; L.push(''); L.push('*'+t+' ('+arr.length+')*');
-      arr.forEach(function(x,i){ L.push(num?(i+1)+'. '+x.name+' — '+f(x.items)+' items · '+x.tasks+' task'+(x.tasks===1?'':'s')+(x.rework?' · '+x.rework+' rework':''):'• '+x.name); }); }
-    list('✅ Target met · '+f(S.min)+'+ items',g.met,true);
-    list('⚠️ Below target',g.below,true);
-    list('⏳ Task in progress',g.working,false);
-    list('🚫 No data in the pool',g.nodata,false);
-    list('❌ Did not work',g.none,false);
+
+$('btnEye').addEventListener('click', () => {
+  const p = $('inPass'), on = p.type === 'password';
+  p.type = on ? 'text' : 'password'; $('btnEye').textContent = on ? 'Hide' : 'Show';
+});
+
+$('fLogin').addEventListener('submit', e => {
+  e.preventDefault();
+  withBusy(e.target.querySelector('[type=submit]'), async () => {
+    const memberId = $('inId').value.trim().toUpperCase();
+    const s = await api('login', { memberId, password: $('inPass').value.trim() });
+    if (!s.ok) throw new Error(s.error);
+    session = { memberId, token: s.token }; store.set(KEY, session);
+    render(s); toast('Welcome, ' + String(s.name).split(' ')[0]);
   });
-  return L.join('\\n');
+});
+
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  startType = b.dataset.type;
+  document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  $('reworkNote').classList.toggle('hidden', startType !== 'Rework');
+  $('btnStart')._label = startType === 'Rework' ? 'Start Rework' : 'Start Task';
+  if (!$('btnStart').disabled) $('btnStart').innerHTML = $('btnStart')._label;
+}));
+
+$('fStart').addEventListener('submit', e => {
+  e.preventDefault();
+  const taskId = $('inTask').value.trim().toUpperCase();
+  if (!taskId){ toast('Please enter the Task ID.', true); $('inTask').focus(); return; }
+  withBusy($('btnStart'), async () => {
+    const s = await call('start', { taskId, type: startType });
+    const was = startType;
+    $('inTask').value = ''; document.querySelector('.seg [data-type=New]').click();
+    render(s); toast(was === 'Rework' ? 'Rework started.' : 'Task started. Good luck!');
+  });
+});
+
+function readForm(){
+  const v = id => $(id).value.trim();
+  const need = [['inTaskId','Task ID'],['inBatch','Batch'],['inTaskName','Task Name'],['inVMs','Valid duration'],['inVIt','Valid items'],['inIMs','Invalid duration'],['inIIt','Invalid items']];
+  const miss = need.find(([id]) => v(id) === '');
+  if (miss){ toast('Please fill in ' + miss[1] + '. Enter 0 if there is none.', true); $(miss[0]).focus(); return null; }
+  const nums = ['inVMs','inVIt','inIMs','inIIt'].map(id => Number(v(id)));
+  if (nums.some(x => !Number.isInteger(x) || x < 0)){ toast('Durations and items must be whole numbers.', true); return null; }
+  return { taskId: v('inTaskId').toUpperCase(), batch: v('inBatch'), taskName: v('inTaskName'),
+    validMs: nums[0], validItems: nums[1], invalidMs: nums[2], invalidItems: nums[3], notes: v('inNotes') };
 }
-document.getElementById('d').onchange=load;
-document.getElementById('who').onchange=function(){if(data)draw()};
-document.getElementById('cp').onclick=function(){
-  var t=document.getElementById('txt'); t.focus(); t.select();
-  var ok=false; try{ok=document.execCommand('copy')}catch(x){}
-  if(!ok&&navigator.clipboard){navigator.clipboard.writeText(t.value)}
-  this.textContent='Copied ✓'; var b=this; setTimeout(function(){b.textContent='Copy text'},1500);
-};
-document.getElementById('png').onclick=function(){
-  var card=document.getElementById('card'); if(!card||!window.html2canvas)return alert('Image tool could not load. Use Copy text instead.');
-  var b=this, w=document.getElementById('who').value; b.textContent='Preparing…';
-  html2canvas(card,{scale:2,backgroundColor:'#ffffff',useCORS:true}).then(function(cv){
-    var a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='Speech-Ocean-'+(w==='ALL'?'':w+'-')+'Report-'+data.day+'.png'; document.body.appendChild(a); a.click(); a.remove();
-    b.textContent='Download image';
-  }).catch(function(){b.textContent='Download image';alert('Could not create the image. Use Copy text instead.')});
-};
-load();
-</script></body></html>`;
 
+$('fResult').addEventListener('submit', e => {
+  e.preventDefault();
+  const d = readForm(); if (!d) return;
+  const isEdit = !!editId;
+  if (!confirm((isEdit ? 'Save changes to ' : 'Submit ') + 'Task ' + d.taskId + '?\n\nValid: ' + n(d.validMs) + ' ms / ' + n(d.validItems) + ' items\nInvalid: ' + n(d.invalidMs) + ' ms / ' + n(d.invalidItems) + ' items\nTotal: ' + n(d.validItems + d.invalidItems) + ' items\n\nPlease double-check with the platform.')) return;
+  const btn = e.submitter || e.target.querySelector(isEdit ? '#btnsEdit [type=submit]' : '#btnsLive [type=submit]');
+  withBusy(btn, async () => {
+    const s = await call(isEdit ? 'update' : 'finish', Object.assign({ logId: isEdit ? editId : state.open.logId }, d));
+    editId = null; $('fResult').dataset.log = ''; hist = null; render(s); toast(isEdit ? 'Report updated.' : 'Task submitted! Waiting for admin verification.');
+  });
+});
 
-/* =====================================================================
- * QA BOARD (Indonesia) — QA members claim submitted TR tasks
- * ---------------------------------------------------------------------
- * Source: Task Log rows with Role = TR and Status = Submitted, from
- * QA_BOARD.SOURCE_FROM onward (project time zone). Task Log is never edited.
- * Claims live in "QA Claims". QA log in from "QA Accounts" (QA ID, Name, PIN, Active).
- * A TR task is matched to its claims by TR Log ID (fallback: Task ID).
- * If the TR submits the same Task ID again (rework), the newest submission
- * becomes a new task round and shows up as available again.
- * ===================================================================== */
+$('btnCancelEdit').addEventListener('click', () => { editId = null; $('fResult').dataset.log = ''; render(state); });
+$('btnCancelEdit').addEventListener('click', () => { if (editFrom === 'all') setTab('all'); });
 
-const QA_BOARD_TYPE = 'QA Board';   // Task Log "Type" of QA reports done through the QA Board (paid at a different rate)
-const QA_TAKEN = 'Taken by other team';  // QA Claims status when the task is not on the platform any more
-
-const QA_BOARD = {
-  SOURCE_FROM: '2026-11-23',   // only TR submissions on/after this date (yyyy-MM-dd, project time zone)
-  SOURCE_FROM_TIME: '2026-11-23T23:00:00+06:00',   // ...and submitted after this moment (older tasks are not shown)
-  CLAIM_HOURS: 8,              // auto-release a claim that is not marked done within this many hours
-  MAX_AVAILABLE: 1500,         // max available tasks sent to the board
-  RECENT_DONE: 20              // "Recently done by me" list length
-};
-
-// TR portal ID -> Speech Ocean platform worker ID (QA searches this in Apply For Work > AssignedTask).
-const PLATFORM_IDS = {
-  'R-OPIDN_0001': '52191', 'R-OPIDN_0002': '52192', 'R-OPIDN_0003': '52193', 'R-OPIDN_0004': '52194',
-  'R-OPIDN_0005': '52195', 'R-OPIDN_0006': '52196', 'R-OPIDN_0007': '52197', 'R-OPIDN_0008': '52198',
-  'R-OPIDN_0009': '52199', 'R-OPIDN_0010': '52200', 'R-OPIDN_0017': '52207',
-  'R2-OPIDN_0001': '52256', 'R2-OPIDN_0002': '52257', 'R2-OPIDN_0003': '52258', 'R2-OPIDN_0004': '52259',
-  'R2-OPIDN_0005': '52260', 'R2-OPIDN_0008': '52263', 'R2-OPIDN_0009': '52264', 'R2-OPIDN_0010': '52265',
-  'R2-OPIDN_0011': '52266', 'R2-OPIDN_0012': '52267', 'R2-OPIDN_0013': '52268', 'R2-OPIDN_0014': '52269',
-  'R2-OPIDN_0015': '52270'
-};
-function platformId_(trId) { return PLATFORM_IDS[clean_(trId).replace(/^\uFEFF/, '')] || ''; }
-
-const QA_ACC = {
-  name: 'QA Accounts',
-  head: ['QA ID', 'Name', 'PIN', 'Active'],
-  widths: [120, 200, 100, 80],
-  fmt: ['@', '@', '@', '@']
-};
-
-// Manual task pool: paste TR tasks here (e.g. from the Speech Ocean platform) so QA can claim them.
-const QA_POOL = {
-  name: 'QA Pool',
-  head: ['Task ID', 'TR ID', 'TR Name', 'Batch', 'Task Name', 'Submitted', 'Items', 'Note'],
-  widths: [110, 120, 150, 120, 220, 140, 80, 220],
-  fmt: ['@', '@', '@', '@', '@', DT, '0', '@']
-};
-
-const QA_CLAIMS = {
-  name: 'QA Claims',
-  head: ['Task ID', 'TR ID', 'Status', 'QA ID', 'QA Name', 'Claimed At', 'Done At', 'QA Note', 'TR Log ID', 'Released At', 'QA Task ID', 'QA Started At'],
-  widths: [100, 110, 110, 100, 170, 140, 140, 260, 130, 140, 110, 140],
-  fmt: ['@', '@', '@', '@', '@', DT, DT, '@', '@', DT, '@', DT]
-};
-// QA Claims columns (0-based)
-const QC_ = { TASK: 0, TR: 1, STATUS: 2, QA: 3, QANAME: 4, CLAIMED: 5, DONE: 6, NOTE: 7, LOG: 8, RELEASED: 9, QATASK: 10, QASTART: 11 };
-
-/* ---------- API router (called from handle_ for actions starting with qa_) ---------- */
-
-function qaHandle_(d) {
-  const action = String(d.action || '');
-
-  // Signed in through the main Work Portal (ID Details): only Role = QA may use the board.
-  if (d.memberId) {
-    const mem = auth_(clean_(d.memberId), String(d.token || ''));
-    if (mem.role !== 'QA') throw new Error('The QA Board is only for QA members.');
-    return qaRoute_({ id: mem.id, name: mem.name }, action, d);
+$('list').addEventListener('click', listAction);
+function listAction(e){
+  const ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+  if (ed){
+    if (state.open){ toast('Submit or delete your task in progress before editing another report.', true); return; }
+    editId = ed.dataset.edit; editFrom = tab; if (tab !== 'today') setTab('today');
+    render(state); $('cForm').scrollIntoView({ behavior:'smooth', block:'start' });
   }
-
-  // Legacy: separate qa.html with QA Accounts PIN.
-  const id = clean_(d.qaId);
-  if (!id) throw new Error('QA ID is required.');
-
-  if (action === 'qa_login') {
-    const acc = qaAccount_(id);
-    const pin = String(d.pin || '').trim();
-    if (!acc || !pin || acc.pin !== pin) throw new Error('Invalid QA ID or PIN.');
-    if (!acc.active) throw new Error('Your QA account is inactive. Please contact your team lead.');
-    return Object.assign(qaBoard_(acc), { token: qaToken_(acc) });
-  }
-
-  const acc = qaAccount_(id);
-  if (!acc || String(d.token || '') !== qaToken_(acc)) { const e = new Error('Your session has expired. Please sign in again.'); e.code = 'AUTH'; throw e; }
-  if (!acc.active) { const e = new Error('Your QA account is inactive. Please contact your team lead.'); e.code = 'AUTH'; throw e; }
-  return qaRoute_(acc, action, d);
-}
-
-function qaRoute_(acc, action, d) {
-  if (action === 'qa_board') return qaBoard_(acc);
-
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    if (action === 'qa_claim') return qaClaim_(acc, String(d.logId || ''));
-    if (action === 'qa_done') return qaFinish_(acc, String(d.logId || ''), 'Done', String(d.note || '').trim(), d);
-    if (action === 'qa_settask') return qaSetTask_(acc, String(d.logId || ''), clean_(d.qaTaskId));
-    if (action === 'qa_release') return qaFinish_(acc, String(d.logId || ''), 'Released', '');
-    if (action === 'qa_notfound') return qaNotFound_(acc, String(d.logId || ''), String(d.note || '').trim());
-  } finally {
-    lock.releaseLock();
-  }
-  throw new Error('Unknown action.');
-}
-
-function qaToken_(acc) {
-  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'QA|' + acc.id + '|' + acc.pin + '|' + salt_());
-  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
-}
-
-/* ---------- Data ---------- */
-
-function qaAccounts_() {
-  const sh = qaSheet_(QA_ACC), map = {};
-  rows_(sh).forEach(r => {
-    const id = clean_(r[0]); if (!id || map[id]) return;
-    map[id] = {
-      id: id,
-      name: String(r[1] || '').trim() || id,
-      pin: String(r[2] == null ? '' : r[2]).trim(),
-      active: String(r[3] || 'Yes').trim().toLowerCase() !== 'no'
-    };
-  });
-  return map;
-}
-function qaAccount_(id) { return qaAccounts_()[id] || null; }
-
-/** Newest TR submission per Task ID, from SOURCE_FROM onward. */
-function qaSource_() {
-  const mem = allMembers_(), byTask = {};
-  rows_(getSheet_(LOG)).forEach(r => {
-    if (r[C_.STATUS] !== 'Submitted') return;
-    const trId = clean_(r[2]);
-    const role = mem[trId] ? mem[trId].role : String(r[4] || '').toUpperCase();
-    if (role !== 'TR') return;
-    if (dateKey_(r[1]) < QA_BOARD.SOURCE_FROM) return;
-    const taskId = clean_(r[C_.TASK]); if (!taskId) return;
-    const end = isDate_(r[C_.END]) ? r[C_.END].getTime() : 0;
-    if (end < Date.parse(QA_BOARD.SOURCE_FROM_TIME)) return;
-    const prev = byTask[taskId];
-    if (prev && prev._t >= end) return;
-    byTask[taskId] = {
-      _t: end,
-      logId: String(r[0]), taskId: taskId, trId: trId, platformId: platformId_(trId), trName: String(r[3] || (mem[trId] ? mem[trId].name : '')),
-      type: String(r[C_.TYPE] || 'New'), batch: String(r[7] || ''), taskName: String(r[8] || ''),
-      submitted: end ? new Date(end).toISOString() : null,
-      validMs: Number(r[C_.VMS]) || 0, validItems: Number(r[C_.VIT]) || 0,
-      invalidMs: Number(r[C_.IMS]) || 0, invalidItems: Number(r[C_.IIT]) || 0,
-      totalItems: Number(r[C_.TOTAL]) || 0, trVerified: r[C_.VER] === true
-    };
-  });
-  // Tasks pasted into "QA Pool" (only added when the Task ID is not already in Task Log).
-  rows_(qaSheet_(QA_POOL)).forEach(r => {
-    const taskId = clean_(r[0]); if (!taskId || byTask[taskId]) return;
-    const trId = clean_(r[1]);
-    const end = isDate_(r[5]) ? r[5].getTime() : (Date.parse(String(r[5] || '')) || 0);
-    if (end && end < Date.parse(QA_BOARD.SOURCE_FROM_TIME)) return;
-    byTask[taskId] = {
-      _t: end, logId: 'POOL-' + taskId, taskId: taskId, trId: trId, platformId: platformId_(trId),
-      trName: String(r[2] || (mem[trId] ? mem[trId].name : '')),
-      type: 'New', batch: String(r[3] || ''), taskName: String(r[4] || ''),
-      submitted: end ? new Date(end).toISOString() : null,
-      validMs: 0, validItems: 0, invalidMs: 0, invalidItems: 0,
-      totalItems: Number(r[6]) || 0, trVerified: false, note: String(r[7] || '')
-    };
-  });
-  return Object.keys(byTask).map(k => byTask[k]);
-}
-
-function qaClaimRows_() {
-  const sh = qaSheet_(QA_CLAIMS);
-  const cols = QA_CLAIMS.head.length;   // add new columns to an older QA Claims tab
-  if (sh.getMaxColumns() < cols) sh.insertColumnsAfter(sh.getMaxColumns(), cols - sh.getMaxColumns());
-  if (String(sh.getRange(1, cols).getValue()) !== QA_CLAIMS.head[cols - 1]) {
-    sh.getRange(1, 1, 1, cols).setValues([QA_CLAIMS.head]).setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#6B3FA0').setFontSize(9).setHorizontalAlignment('center');
-    sh.getRange(2, QC_.QATASK + 1, sh.getMaxRows() - 1, 1).setNumberFormat('@');
-    sh.getRange(2, QC_.QASTART + 1, sh.getMaxRows() - 1, 1).setNumberFormat(DT);
-  }
-  const n = sh.getLastRow();
-  if (n < 2) return { sh: sh, rows: [] };
-  const vals = sh.getRange(2, 1, n - 1, QA_CLAIMS.head.length).getValues();
-  return { sh: sh, rows: vals.map((r, i) => ({ r: r, rowNum: i + 2 })).filter(x => String(x.r[QC_.TASK]).trim() || String(x.r[QC_.LOG]).trim()) };
-}
-
-/** Releases claims older than CLAIM_HOURS. Call only while holding the script lock. */
-function qaAutoRelease_(c) {
-  const limit = Date.now() - QA_BOARD.CLAIM_HOURS * 3600000, now = new Date();
-  let n = 0;
-  c.rows.forEach(x => {
-    const r = x.r;
-    if (r[QC_.STATUS] === 'Claimed' && !String(r[QC_.QATASK] || '').trim() && isDate_(r[QC_.CLAIMED]) && r[QC_.CLAIMED].getTime() < limit) {
-      r[QC_.STATUS] = 'Auto-released'; r[QC_.RELEASED] = now;
-      c.sh.getRange(x.rowNum, QC_.STATUS + 1).setValue('Auto-released');
-      c.sh.getRange(x.rowNum, QC_.RELEASED + 1).setValue(now);
-      n++;
-    }
-  });
-  return n;
-}
-
-/** Time trigger (installed by setup): auto-release expired claims even when nobody has the board open. */
-function qaAutoReleaseJob() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(10000)) return;
-  try { qaAutoRelease_(qaClaimRows_()); } finally { lock.releaseLock(); }
-}
-
-function qaMatches_(claimRow, task) {
-  const log = String(claimRow[QC_.LOG] || '').trim();
-  return log ? log === task.logId : clean_(claimRow[QC_.TASK]) === task.taskId;
-}
-
-/* ---------- Board ---------- */
-
-function qaBoard_(acc, extra, lockHeld) {
-  const c = qaClaimRows_();
-  if (lockHeld) qaAutoRelease_(c);
-  else {
-    const lock = LockService.getScriptLock();
-    if (lock.tryLock(3000)) { try { qaAutoRelease_(c); } finally { lock.releaseLock(); } }
-  }
-
-  const source = qaSource_();
-  const byLog = {}, byTask = {};
-  source.forEach(t => { byLog[t.logId] = t; byTask[t.taskId] = t; });
-
-  const activeKey = {}, doneKey = {};
-  const keyOf = r => String(r[QC_.LOG] || '').trim() || ('T:' + clean_(r[QC_.TASK]));
-  c.rows.forEach(x => {
-    const st = x.r[QC_.STATUS];
-    if (st === 'Claimed') activeKey[keyOf(x.r)] = x.r;
-    else if (st === 'Done' || st === QA_TAKEN) doneKey[keyOf(x.r)] = x.r;
-  });
-  const taken = t => activeKey[t.logId] || doneKey[t.logId] || activeKey['T:' + t.taskId] || doneKey['T:' + t.taskId];
-
-  const tries = {};
-  c.rows.forEach(x => {
-    const st = x.r[QC_.STATUS];
-    if (st !== 'Released' && st !== 'Auto-released') return;
-    const k = keyOf(x.r), at = isDate_(x.r[QC_.RELEASED]) ? x.r[QC_.RELEASED].getTime() : 0;
-    const o = tries[k] || (tries[k] = { n: 0, last: 0, qa: {} });
-    o.n++; o.qa[clean_(x.r[QC_.QA])] = 1; if (at > o.last) o.last = at;
-  });
-  const available = source.filter(t => !taken(t))
-    .sort((a, b) => a._t - b._t)
-    .map(t => {
-      const o = Object.assign({}, t); delete o._t;
-      const tr = tries[t.logId] || tries['T:' + t.taskId];
-      o.tries = tr ? tr.n : 0;
-      o.triedBy = tr ? Object.keys(tr.qa).length : 0;
-      o.lastTry = tr && tr.last ? new Date(tr.last).toISOString() : null;
-      return o;
+  if (del){
+    const t = findTask(del.dataset.del);
+    const what = t.status === 'In Progress' ? 'this task in progress' : t.status === 'No Data' ? 'this "no data" report' : 'the report for Task ' + t.taskId;
+    if (!confirm('Delete ' + what + '?\nThis cannot be undone.')) return;
+    withBusy(del, async () => {
+      const s = await call('remove', { logId: t.logId });
+      if (editId === t.logId) editId = null;
+      render(s); toast('Deleted.');
+      if (hist){ hist.tasks = hist.tasks.filter(x => x.logId !== t.logId); if (tab === 'all') renderHistory(); }
     });
+  }
+}
 
-  const limitMs = QA_BOARD.CLAIM_HOURS * 3600000;
-  const info = r => {
-    const t = byLog[String(r[QC_.LOG] || '')] || byTask[clean_(r[QC_.TASK])] || {};
-    return {
-      logId: String(r[QC_.LOG] || t.logId || ''), taskId: String(r[QC_.TASK] || t.taskId || ''),
-      trId: String(r[QC_.TR] || t.trId || ''), platformId: platformId_(r[QC_.TR] || t.trId), trName: t.trName || '', type: t.type || '',
-      batch: t.batch || '', taskName: t.taskName || '', submitted: t.submitted || null,
-      totalItems: t.totalItems || 0, validItems: t.validItems || 0, invalidItems: t.invalidItems || 0, validMs: t.validMs || 0,
-      claimedAt: isDate_(r[QC_.CLAIMED]) ? r[QC_.CLAIMED].toISOString() : null,
-      expiresAt: isDate_(r[QC_.CLAIMED]) && !String(r[QC_.QATASK] || '').trim() ? new Date(r[QC_.CLAIMED].getTime() + limitMs).toISOString() : null,
-      doneAt: isDate_(r[QC_.DONE]) ? r[QC_.DONE].toISOString() : null,
-      note: String(r[QC_.NOTE] || ''),
-      qaTaskId: String(r[QC_.QATASK] || ''),
-      qaStartedAt: isDate_(r[QC_.QASTART]) ? r[QC_.QASTART].toISOString() : null,
-      status: String(r[QC_.STATUS] || '')
-    };
+$('btnNoData').addEventListener('click', () => { $('btnNoData').classList.add('hidden'); $('noDataForm').classList.remove('hidden'); $('inNoDataNote').focus(); });
+$('btnNoDataCancel').addEventListener('click', () => { $('noDataForm').classList.add('hidden'); $('btnNoData').classList.remove('hidden'); });
+$('btnNoDataSend').addEventListener('click', e => {
+  withBusy(e.currentTarget, async () => {
+    const s = await call('nodata', { notes: $('inNoDataNote').value.trim() });
+    $('inNoDataNote').value = ''; $('noDataForm').classList.add('hidden'); $('btnNoData').classList.remove('hidden');
+    render(s); toast('Daily activity submitted.');
+  });
+});
+
+$('btnOut').addEventListener('click', () => {
+  if (state && state.open && !confirm('You have a task in progress. Sign out anyway? The timer keeps running.')) return;
+  signOut();
+});
+$('btnRefresh').addEventListener('click', () => load(true));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && session && !editId) load(); if (!document.hidden && tab === 'today' && state && state.role === 'QA' && !qBusy && !qOpenDone) qLoad(true); });
+
+
+/* ---------- QA Board (Role = QA) ---------- */
+const QA_REFRESH = 20;
+function qDur(ms){ ms = Math.max(0, ms); const m = Math.floor(ms/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+  return d ? d + 'd ' + (h%24) + 'h' : h ? h + 'h ' + (m%60) + 'm' : m + 'm'; }
+const qDT = iso => iso ? new Date(iso).toLocaleString([], { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' }) : '—';
+async function qCopy(t){
+  try { await navigator.clipboard.writeText(t); return true; }
+  catch(e){ const ta = document.createElement('textarea'); ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch(_){} ta.remove(); return ok; }
+}
+const qFind = id => qState && (qState.mine.find(t => t.logId === id) || qState.available.find(t => t.logId === id));
+async function qBusyBtn(btn, fn){
+  if (!btn._label) btn._label = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Wait'; qBusy = true;
+  let failed = false;
+  try { await fn(); } catch(err){ failed = true; toast(err.message || 'Something went wrong.', true); }
+  qBusy = false; if (document.body.contains(btn)){ btn.disabled = false; btn.innerHTML = btn._label; }
+  if (failed) qLoad(true);
+}
+function qStart(){ qStop(); qPoll = setInterval(() => { if (!document.hidden && !qBusy && !qOpenDone && ![...document.querySelectorAll('#qMine input')].some(x => x.value || x === document.activeElement)) qLoad(true); }, QA_REFRESH*1000); qTick = setInterval(qStamp, 1000); }
+function qStop(){ clearInterval(qPoll); clearInterval(qTick); qPoll = qTick = null; }
+async function qLoad(silent){
+  if (!session) return;
+  if (!qState) $('qAvail').innerHTML = '<li class="empty">Loading…</li>';
+  try { qRender(await call('qa_board', {})); if (silent === 'toast') toast('Updated'); }
+  catch(e){ if (silent !== true) toast(e.message, true); }
+}
+function qRender(s){
+  qState = s; qLastOk = Date.now();
+  $('qWait').textContent = n(s.stats.waiting);
+  $('qProg').textContent = n(s.stats.inProgressMine);
+  $('qDone').textContent = n(s.stats.doneToday); $('qDoneTotal').textContent = 'today · ' + n(s.stats.doneTotal) + ' total';
+  $('qMineSub').textContent = 'Open assigned task → open a task → enter its Task ID → Complete work. Unfinished claims are released after ' + s.claimHours + ' hours.';
+  $('qMineCount').textContent = s.mine.length ? s.mine.length + ' claimed' : '';
+  qRenderMine(); qRenderAvail(); qRenderRecent(); qStamp();
+}
+function qMeta(t){
+  return '<div class="qmeta"><div>Submitted<b>' + qDT(t.submitted) + '</b></div>' +
+    '<div>Audio items<b>' + n(t.totalItems) + '</b></div>' +
+    '<div>Valid / Invalid<b>' + n(t.validItems) + ' / ' + n(t.invalidItems) + '</b></div></div>' +
+    (t.tries ? '<div class="qtr" style="margin-top:8px;color:var(--warn)">⚠ Released ' + t.tries + ' time' + (t.tries === 1 ? '' : 's') +
+      ' by ' + t.triedBy + ' QA' + (t.triedBy === 1 ? '' : 's') + (t.lastTry ? ' · last ' + qDT(t.lastTry) : '') + '. Check the platform before claiming.</div>' : '');
+}
+function qHead(t, right){
+  return '<div class="qhead"><div><div class="qtid">Task ' + esc(t.taskId) + (t.type === 'Rework' ? '<span class="tag">Rework</span>' : '') + '</div>' +
+    '<div class="qtr">TR <b>' + esc(t.trId) + '</b>' + (t.trName ? ' · ' + esc(t.trName) : '') + (t.platformId ? ' · Platform ID <b>' + esc(t.platformId) + '</b>' : '') +
+    ([t.batch && 'Batch ' + t.batch, t.taskName].filter(Boolean).length ? ' · ' + esc([t.batch && 'Batch ' + t.batch, t.taskName].filter(Boolean).join(' · ')) : '') +
+    '</div></div>' + right + '</div>';
+}
+function qRenderMine(){
+  const ul = $('qMine');
+  if (!qState.mine.length){ ul.innerHTML = '<li class="empty">No claimed tasks. Claim one from Available tasks below.</li>'; return; }
+  ul.innerHTML = qState.mine.map(t => {
+    const left = t.expiresAt ? new Date(t.expiresAt).getTime() - Date.now() : Infinity, soon = left < 3600000, open = qOpenDone === t.logId;
+    return '<li class="qtask mine' + (soon ? ' soon' : '') + '">' +
+      qHead(t, t.expiresAt
+        ? '<span class="qtimer' + (soon ? ' soon' : '') + '" data-exp="' + esc(t.expiresAt) + '">' + (left > 0 ? 'Releases in ' + qDur(left) : 'Releasing…') + '</span>'
+        : '<span class="qtimer">In progress · no auto-release</span>') +
+      qMeta(t) + '<div class="qtr" style="margin-top:8px">Claimed ' + qDT(t.claimedAt) + '</div>' +
+      (open
+        ? '<div class="qdone"><div class="qtr" style="margin-bottom:6px">Complete work · QA Task <b>' + esc(t.qaTaskId) + '</b> — enter the result from the platform</div>' +
+          '<div class="grid2"><div><label for="qv_' + esc(t.logId) + '" style="margin-top:0">Valid duration (ms)</label><input id="qv_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="1342120"></div>' +
+          '<div><label for="qvi_' + esc(t.logId) + '" style="margin-top:0">Valid items</label><input id="qvi_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="428"></div></div>' +
+          '<div class="grid2"><div><label for="qi_' + esc(t.logId) + '">Invalid duration (ms)</label><input id="qi_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="244919"></div>' +
+          '<div><label for="qii_' + esc(t.logId) + '">Invalid items</label><input id="qii_' + esc(t.logId) + '" type="number" inputmode="numeric" min="0" step="1" placeholder="72"></div></div>' +
+          '<label for="qn_' + esc(t.logId) + '">Note <span class="opt">(optional)</span></label>' +
+          '<textarea id="qn_' + esc(t.logId) + '" placeholder="Anything the admin should know?"></textarea>' +
+          '<div class="qacts"><button class="qbtn green" data-qconfirm="' + esc(t.logId) + '">Submit</button><button class="qbtn ghost" data-qcancel="1">Cancel</button></div></div>'
+        : (t.platformId ? '<div class="qacts"><a class="qbtn" href="' + SO_URL + encodeURIComponent(t.platformId) + '" target="_blank" rel="noopener" style="text-decoration:none">Open assigned task</a></div>' : '<div class="qtr" style="margin-top:10px">No platform ID for ' + esc(t.trId) + ' — ask the admin.</div>') +
+          (t.qaTaskId
+            ? '<div class="qtr" style="margin-top:10px">QA Task <b>' + esc(t.qaTaskId) + '</b>' + (t.qaStartedAt ? ' · started ' + qDT(t.qaStartedAt) : '') + '</div>' +
+              '<div class="qacts"><button class="qbtn green" data-qdone="' + esc(t.logId) + '">Complete work</button>' +
+              '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button>' +
+              '<button class="qbtn ghost" style="color:var(--bad)" data-qnf="' + esc(t.logId) + '">Can\'t find the task</button></div>'
+            : '<label for="qt_' + esc(t.logId) + '">Enter Task ID <span class="opt">(the task you opened on the platform)</span></label>' +
+              '<input id="qt_' + esc(t.logId) + '" placeholder="Paste the Task ID" autocapitalize="characters">' +
+              '<div class="qacts"><button class="qbtn" data-qset="' + esc(t.logId) + '">Start task</button>' +
+              '<button class="qbtn ghost" data-qrelease="' + esc(t.logId) + '">Release</button>' +
+              '<button class="qbtn ghost" style="color:var(--bad)" data-qnf="' + esc(t.logId) + '">Can\'t find the task</button></div>')) +
+      '</li>';
+  }).join('');
+}
+function qRenderAvail(){
+  const q = $('qSearch').value.trim().toUpperCase(), all = qState.available;
+  const list = q ? all.filter(t => String(t.taskId).toUpperCase().includes(q) || String(t.trId).toUpperCase().includes(q) || String(t.platformId || '').includes(q)) : all;
+  const ul = $('qAvail');
+  if (!list.length){
+    ul.innerHTML = '<li class="empty">' + (q ? 'No available task matches "' + esc(q) + '".' : 'No TR tasks waiting right now. New TR submissions appear here automatically.') + '</li>';
+    $('qMoreBox').classList.add('hidden'); return;
+  }
+  ul.innerHTML = list.slice(0, qShown).map(t =>
+    '<li class="qtask">' + qHead(t, '<span class="qage">waiting ' + (t.submitted ? qDur(Date.now() - new Date(t.submitted).getTime()) : '—') + '</span>') +
+    qMeta(t) + '<div class="qacts"><button class="qbtn" data-qclaim="' + esc(t.logId) + '">Claim task</button></div></li>').join('');
+  const rest = list.length - Math.min(qShown, list.length);
+  $('qMoreBox').classList.toggle('hidden', rest <= 0);
+  $('qMore').textContent = 'Show more (' + n(rest) + ' left)';
+}
+function qRenderRecent(){
+  const ul = $('qRecent');
+  if (!qState.recent.length){ ul.innerHTML = '<li class="empty" style="display:block">Nothing done yet.</li>'; return; }
+  ul.innerHTML = qState.recent.map(t => '<li><div><b>Task ' + esc(t.taskId) + '</b><span class="m">TR ' + esc(t.trId) +
+    (t.status === 'Taken by other team' ? ' · ' : ' · done ') + qDT(t.doneAt) + (t.note ? ' · ' + esc(t.note) : '') + '</span></div>' +
+    (t.status === 'Taken by other team' ? '<span class="pill" style="background:var(--bad-soft);color:var(--bad)">Taken by other team</span>' : '<span class="pill ver">Done</span>') + '</li>').join('');
+}
+function qStamp(){
+  const age = Math.round((Date.now() - qLastOk) / 1000);
+  $('qUpdated').textContent = !qLastOk ? '—' : age < 5 ? 'Updated just now' : 'Updated ' + (age < 60 ? age + 's' : Math.floor(age/60) + 'm') + ' ago';
+  document.querySelectorAll('#qMine [data-exp]').forEach(x => {
+    const left = new Date(x.dataset.exp).getTime() - Date.now();
+    x.textContent = left > 0 ? 'Releases in ' + qDur(left) : 'Releasing…'; x.classList.toggle('soon', left < 3600000);
+  });
+}
+$('vQa').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const d = b.dataset;
+  if (d.qcopy) qCopy(d.qcopy).then(ok => toast(ok ? d.qcopy + ' copied' : 'Could not copy: ' + d.qcopy, !ok));
+  else if (d.qclaim){
+    const t = qFind(d.qclaim);
+    qBusyBtn(b, async () => {
+      const s = await call('qa_claim', { logId: d.qclaim }); qRender(s);
+      toast('Claimed task ' + (t ? t.taskId : '') + '. Now click "Open assigned task".');
+    });
+  }
+  else if (d.qset){
+    const id = d.qset, v = (($('qt_' + id) || {}).value || '').trim().toUpperCase();
+    if (!v){ toast('Please enter the Task ID.', true); return; }
+    qBusyBtn(b, async () => { const s = await call('qa_settask', { logId: id, qaTaskId: v }); qRender(s); toast('Task ' + v + ' started. Click "Complete work" when finished.'); });
+  }
+  else if (d.qdone){ qOpenDone = d.qdone; qRenderMine(); const f = $('qv_' + qOpenDone); if (f) f.focus(); }
+  else if (d.qcancel){ qOpenDone = null; qRenderMine(); }
+  else if (d.qconfirm){
+    const id = d.qconfirm, val = k => (($(k + '_' + id) || {}).value || '').trim();
+    const tk = qFind(id), qaTaskId = tk ? tk.qaTaskId : '';
+    const nums = ['qv','qvi','qi','qii'].map(k => val(k) === '' ? NaN : Number(val(k)));
+    if (nums.some(x => !isFinite(x) || x < 0 || Math.floor(x) !== x)){ toast('Please enter whole numbers for all duration and item fields.', true); return; }
+    if (nums[0] + nums[2] <= 0 || nums[1] + nums[3] <= 0){ toast('Duration and items must be more than 0.', true); return; }
+    if (!confirm('Submit QA Task ' + qaTaskId + '?\n\nValid: ' + n(nums[0]) + ' ms / ' + n(nums[1]) + ' items\nInvalid: ' + n(nums[2]) + ' ms / ' + n(nums[3]) + ' items\nTotal: ' + n(nums[1] + nums[3]) + ' items')) return;
+    qBusyBtn(b, async () => {
+      const s = await call('qa_done', { logId: id, qaTaskId, validMs: nums[0], validItems: nums[1], invalidMs: nums[2], invalidItems: nums[3], note: val('qn') });
+      qOpenDone = null; qRender(s); toast('QA report submitted. Thank you!');
+    });
+  }
+  else if (d.qnf){
+    const t = qFind(d.qnf);
+    if (!confirm('Task ' + (t ? t.taskId : '') + ' is not on the platform?\n\nIt will be removed from the QA Board for everyone and counted as "Taken by other team". This cannot be undone.')) return;
+    qBusyBtn(b, async () => { const s = await call('qa_notfound', { logId: d.qnf }); if (qOpenDone === d.qnf) qOpenDone = null; qRender(s); toast('Marked as taken by other team.'); });
+  }
+  else if (d.qrelease){
+    const t = qFind(d.qrelease);
+    if (!confirm('Release task ' + (t ? t.taskId : '') + '? It will go back to Available tasks.')) return;
+    qBusyBtn(b, async () => { const s = await call('qa_release', { logId: d.qrelease }); if (qOpenDone === d.qrelease) qOpenDone = null; qRender(s); toast('Task released.'); });
+  }
+});
+$('qSearch').addEventListener('input', () => { qShown = 40; if (qState) qRenderAvail(); });
+$('qMore').addEventListener('click', () => { qShown += 40; qRenderAvail(); });
+$('qRefresh').addEventListener('click', () => qLoad('toast'));
+
+/* ---------- demo mode (add ?demo to the URL) ---------- */
+function demo(action, d){
+  const db = store.get('so_demo_db_v4') || { log:[] };
+  const save = () => store.set('so_demo_db_v4', db);
+  const day = new Date().toDateString();
+  const status = id => {
+    const mine = db.log.filter(r => r.memberId === id);
+    return { ok:true, memberId:id, name:'Demo Member', role:'TR', min:500,
+      tasks: mine.filter(r => r.day === day), open: mine.find(r => r.status === 'In Progress') || null };
   };
-
-  const mine = c.rows.filter(x => x.r[QC_.STATUS] === 'Claimed' && clean_(x.r[QC_.QA]) === acc.id)
-    .map(x => info(x.r)).sort((a, b) => String(a.claimedAt).localeCompare(String(b.claimedAt)));
-  const myDone = c.rows.filter(x => x.r[QC_.STATUS] === 'Done' && clean_(x.r[QC_.QA]) === acc.id).map(x => info(x.r))
-    .sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
-  const today = today_();
-  const doneToday = myDone.filter(t => t.doneAt && dateKey_(new Date(t.doneAt)) === today).length;
-  const myTaken = c.rows.filter(x => x.r[QC_.STATUS] === QA_TAKEN && clean_(x.r[QC_.QA]) === acc.id).map(x => info(x.r));
-  const recent = myDone.concat(myTaken).sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
-
-  return Object.assign({
-    ok: true, project: CONFIG.PROJECT, qaId: acc.id, name: acc.name,
-    serverTime: new Date().toISOString(), claimHours: QA_BOARD.CLAIM_HOURS, sourceFrom: QA_BOARD.SOURCE_FROM,
-    stats: {
-      waiting: available.length,
-      inProgress: c.rows.filter(x => x.r[QC_.STATUS] === 'Claimed').length,
-      inProgressMine: mine.length,
-      doneToday: doneToday,
-      doneTotal: myDone.length,
-      takenByOther: c.rows.filter(x => x.r[QC_.STATUS] === QA_TAKEN).length,
-      takenByOtherMine: myTaken.length
-    },
-    available: available.slice(0, QA_BOARD.MAX_AVAILABLE),
-    availableTotal: available.length,
-    mine: mine,
-    recent: recent.slice(0, QA_BOARD.RECENT_DONE)
-  }, extra || {});
-}
-
-/* ---------- Actions (called while holding the script lock) ---------- */
-
-function qaClaim_(acc, logId) {
-  if (!logId) throw new Error('Task not found.');
-  const c = qaClaimRows_();
-  qaAutoRelease_(c);
-  const task = qaSource_().find(t => t.logId === logId);
-  if (!task) throw new Error('This task is no longer available. Please refresh.');
-  const busy = c.rows.find(x => (x.r[QC_.STATUS] === 'Claimed' || x.r[QC_.STATUS] === 'Done' || x.r[QC_.STATUS] === QA_TAKEN) && qaMatches_(x.r, task));
-  if (busy) {
-    if (busy.r[QC_.STATUS] === 'Done') throw new Error('Task ' + task.taskId + ' is already done.');
-    if (busy.r[QC_.STATUS] === QA_TAKEN) throw new Error('Task ' + task.taskId + ' was marked as taken by another team.');
-    if (clean_(busy.r[QC_.QA]) === acc.id) throw new Error('You have already claimed task ' + task.taskId + '.');
-    throw new Error('Task ' + task.taskId + ' was just claimed by another QA.');
-  }
-  const sh = c.sh;
-  const row = sh.getLastRow() + 1;
-  if (row > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), 200);
-  const rg = sh.getRange(row, 1, 1, QA_CLAIMS.head.length);
-  rg.setNumberFormats([QA_CLAIMS.fmt]);
-  rg.setValues([[task.taskId, task.trId, 'Claimed', acc.id, acc.name, new Date(), '', '', task.logId, '', '', '']]);
-  return qaBoard_(acc, { claimed: { taskId: task.taskId, trId: task.trId, platformId: task.platformId, logId: task.logId } }, true);
-}
-
-/** QA could not find this TR task on the platform: someone outside the portal already did it. */
-function qaNotFound_(acc, logId, note) {
-  if (!logId) throw new Error('Task not found.');
-  const c = qaClaimRows_();
-  qaAutoRelease_(c);
-  const mineRow = c.rows.find(x => String(x.r[QC_.LOG]) === logId && x.r[QC_.STATUS] === 'Claimed' && clean_(x.r[QC_.QA]) === acc.id);
-  if (!mineRow) {
-    const other = c.rows.find(x => String(x.r[QC_.LOG]) === logId && x.r[QC_.STATUS] === 'Claimed');
-    if (other) throw new Error('Only the QA who claimed this task can change it.');
-    throw new Error('This task is not claimed by you. Please refresh.');
-  }
-  const now = new Date();
-  c.sh.getRange(mineRow.rowNum, QC_.STATUS + 1, 1, 6).setValues([[QA_TAKEN, mineRow.r[QC_.QA], mineRow.r[QC_.QANAME], mineRow.r[QC_.CLAIMED], now,
-    'Task not found on the platform' + (note ? ' · ' + note : '')]]);
-  return qaBoard_(acc, null, true);
-}
-
-/** QA enters the platform Task ID of the QA task they opened for this TR. */
-function qaSetTask_(acc, logId, qaTask) {
-  if (!qaTask) throw new Error('Please enter the Task ID from the platform.');
-  const c = qaClaimRows_();
-  qaAutoRelease_(c);
-  const mineRow = c.rows.find(x => String(x.r[QC_.LOG]) === logId && x.r[QC_.STATUS] === 'Claimed' && clean_(x.r[QC_.QA]) === acc.id);
-  if (!mineRow) throw new Error('This task is not claimed by you. Please refresh.');
-  const dup = c.rows.find(x => x !== mineRow && clean_(x.r[QC_.QATASK]) === qaTask && (x.r[QC_.STATUS] === 'Claimed' || x.r[QC_.STATUS] === 'Done'));
-  if (dup) throw new Error('Task ' + qaTask + ' is already used by ' + (dup.r[QC_.QANAME] || dup.r[QC_.QA]) + '.');
-  if (rows_(getSheet_(LOG)).some(r => clean_(r[C_.TASK]) === qaTask && String(r[4]) === 'QA' && r[C_.STATUS] === 'Submitted'))
-    throw new Error('QA Task ' + qaTask + ' is already submitted.');
-  const started = isDate_(mineRow.r[QC_.QASTART]) ? mineRow.r[QC_.QASTART] : new Date();
-  c.sh.getRange(mineRow.rowNum, QC_.QATASK + 1, 1, 2).setNumberFormats([['@', DT]]).setValues([[qaTask, started]]);
-  return qaBoard_(acc, null, true);
-}
-
-function qaFinish_(acc, logId, status, note, d) {
-  if (!logId) throw new Error('Task not found.');
-  const c = qaClaimRows_();
-  qaAutoRelease_(c);
-  const mineRow = c.rows.find(x => String(x.r[QC_.LOG]) === logId && x.r[QC_.STATUS] === 'Claimed' && clean_(x.r[QC_.QA]) === acc.id);
-  if (!mineRow) {
-    const other = c.rows.find(x => String(x.r[QC_.LOG]) === logId && x.r[QC_.STATUS] === 'Claimed');
-    if (other) throw new Error('Only the QA who claimed this task can change it.');
-    const expired = c.rows.find(x => String(x.r[QC_.LOG]) === logId && clean_(x.r[QC_.QA]) === acc.id && x.r[QC_.STATUS] === 'Auto-released');
-    if (expired) throw new Error('This claim passed ' + QA_BOARD.CLAIM_HOURS + ' hours and was released automatically. Claim it again if it is still available.');
-    throw new Error('This task is not claimed by you.');
-  }
-  const now = new Date();
-  if (status === 'Done') {
-    // QA report: the QA task done on the platform. Saved to Task Log as a QA row so hours count in reports.
-    d = d || {};
-    const qaTask = clean_(d.qaTaskId) || clean_(mineRow.r[QC_.QATASK]);
-    if (!qaTask) throw new Error('Please enter the Task ID first.');
-    const vMs = num_(d.validMs), vIt = num_(d.validItems), iMs = num_(d.invalidMs), iIt = num_(d.invalidItems);
-    [vMs, vIt, iMs, iIt].forEach(x => {
-      if (!isFinite(x) || x < 0 || Math.floor(x) !== x) throw new Error('Please enter whole numbers for all duration and item fields.');
-    });
-    if (vMs + iMs <= 0) throw new Error('Valid or invalid duration must be more than 0 ms.');
-    if (vIt + iIt <= 0) throw new Error('Valid or invalid audio items must be more than 0.');
-    const sh = getSheet_(LOG), log = rows_(sh);
-    if (log.some(r => clean_(r[C_.TASK]) === qaTask && String(r[4]) === 'QA' && r[C_.STATUS] === 'Submitted'))
-      throw new Error('QA Task ' + qaTask + ' is already submitted.');
-    const src = qaSource_().find(t => t.logId === logId) || {};
-    const start = isDate_(mineRow.r[QC_.QASTART]) ? mineRow.r[QC_.QASTART] : isDate_(mineRow.r[QC_.CLAIMED]) ? mineRow.r[QC_.CLAIMED] : now;
-    const work = Math.max(1, Math.round((now - start) / 60000));
-    const trTask = String(mineRow.r[QC_.TASK] || ''), trId = String(mineRow.r[QC_.TR] || '');
-    const fullNote = ['QA of TR task ' + trTask + ' (' + trId + (platformId_(trId) ? ' / ' + platformId_(trId) : '') + ')', note].filter(Boolean).join(' · ');
-    writeRow_(sh, LOG, lastDataRow_(sh) + 1, [
-      'L' + now.getTime(), today_(), acc.id, acc.name, 'QA', QA_BOARD_TYPE, qaTask, String(d.batch || src.batch || ''), String(d.taskName || src.taskName || ''),
-      start, now, work,
-      vMs, round_(vMs / MS_PER_HOUR, 4), vIt,
-      iMs, round_(iMs / MS_PER_HOUR, 4), iIt,
-      vIt + iIt, 'Submitted', false, fullNote
-    ]);
-    c.sh.getRange(mineRow.rowNum, QC_.STATUS + 1, 1, 6).setValues([['Done', mineRow.r[QC_.QA], mineRow.r[QC_.QANAME], mineRow.r[QC_.CLAIMED], now,
-      'QA Task ' + qaTask + ' · valid ' + vMs + ' ms / ' + vIt + ' · invalid ' + iMs + ' ms / ' + iIt + (note ? ' · ' + note : '')]]);
-    afterChange_();
-  } else {
-    c.sh.getRange(mineRow.rowNum, QC_.STATUS + 1).setValue('Released');
-    c.sh.getRange(mineRow.rowNum, QC_.RELEASED + 1).setValue(now);
-  }
-  return qaBoard_(acc, null, true);
-}
-
-/* ---------- Sheets ---------- */
-
-function qaSheet_(def) {
-  const ss = book_();
-  let sh = ss.getSheetByName(def.name);
-  if (sh) return sh;
-  sh = ss.insertSheet(def.name);
-  const cols = def.head.length;
-  if (sh.getMaxColumns() > cols) sh.deleteColumns(cols + 1, sh.getMaxColumns() - cols);
-  sh.getRange(1, 1, 1, cols).setValues([def.head])
-    .setFontWeight('bold').setFontColor('#FFFFFF').setBackground(def === QA_CLAIMS ? '#6B3FA0' : NAVY).setFontSize(9)
-    .setHorizontalAlignment('center').setVerticalAlignment('middle');
-  sh.setRowHeight(1, 32);
-  sh.setFrozenRows(1);
-  def.widths.forEach((w, i) => sh.setColumnWidth(i + 1, w));
-  const max = sh.getMaxRows();
-  sh.getRange(2, 1, max - 1, cols).setFontFamily('Arial').setFontSize(10).setHorizontalAlignment('center');
-  def.fmt.forEach((f, i) => sh.getRange(2, i + 1, max - 1, 1).setNumberFormat(f));
-  if (def === QA_CLAIMS) {
-    const rng = sh.getRange(2, QC_.STATUS + 1, max - 1, 1);
-    const map = { 'Claimed': ['#DCEBFF', '#1F5FBF'], 'Done': ['#DDF3E6', '#1E7A4C'], 'Released': ['#ECEFF3', '#5D6B7B'], 'Auto-released': ['#FFF1D1', '#9A6300'] };
-    sh.setConditionalFormatRules(Object.keys(map).map(t => SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t)
-      .setBackground(map[t][0]).setFontColor(map[t][1]).setBold(true).setRanges([rng]).build()));
-    sh.getRange(2, QC_.NOTE + 1, max - 1, 1).setHorizontalAlignment('left');
-  }
-  return sh;
-}
-
-/** Earlier QA Board reports were saved with Type "New": mark them as QA Board. */
-function markBoardReports_() {
-  const sh = getSheet_(LOG), n = lastDataRow_(sh);
-  if (n < 2) return;
-  const rg = sh.getRange(2, 1, n - 1, LOG.head.length), v = rg.getValues();
-  let changed = 0;
-  v.forEach((r, i) => {
-    if (String(r[4]) === 'QA' && r[C_.TYPE] === 'New' && /^QA of TR task /.test(String(r[C_.NOTES] || ''))) {
-      sh.getRange(i + 2, C_.TYPE + 1).setValue(QA_BOARD_TYPE); changed++;
+  const fill = (r, d) => Object.assign(r, { taskId:d.taskId, batch:d.batch, taskName:d.taskName, notes:d.notes,
+    validMs:+d.validMs, validItems:+d.validItems, invalidMs:+d.invalidMs, invalidItems:+d.invalidItems,
+    totalItems:+d.validItems + +d.invalidItems, status:'Submitted', verified:false });
+  return new Promise(res => setTimeout(() => {
+    const id = d.memberId, err = m => res({ ok:false, error:m });
+    if (action === 'login') return res(Object.assign(status(id), { token:'demo' }));
+    if (action === 'status') return res(status(id));
+    if (action === 'history'){
+      const seed = [
+        { logId:'H1', day:'2026-10-13', type:'New', taskId:'274640', batch:'943', taskName:'batch_01', start:'2026-10-13T04:00:00Z', end:'2026-10-13T09:00:00Z', validMs:510980, validItems:91, invalidMs:5919, invalidItems:2, totalItems:93, status:'Submitted', verified:true },
+        { logId:'H2', day:'2026-10-14', type:'New', taskId:'274767', batch:'945', taskName:'batch_03', start:'2026-10-14T04:00:00Z', end:'2026-10-14T10:00:00Z', validMs:1116952, validItems:374, invalidMs:552466, invalidItems:126, totalItems:500, status:'Submitted', verified:true },
+        { logId:'H3', day:'2026-10-14', type:'Rework', taskId:'274640', batch:'943', taskName:'batch_01', start:'2026-10-14T11:00:00Z', end:'2026-10-14T12:00:00Z', validMs:300000, validItems:80, invalidMs:0, invalidItems:0, totalItems:80, status:'Submitted', verified:false }
+      ];
+      const today = new Date().toISOString().slice(0,10);
+      const mine = db.log.filter(r => r.memberId === id && r.status !== 'In Progress').map(r => Object.assign({}, r, { day: today }));
+      return res({ ok:true, today, min:500, tasks: seed.concat(mine).reverse() });
     }
-  });
-  return changed;
-}
-
-/** Status colours in QA Claims (also for older tabs). */
-function qaClaimsFormat_() {
-  const sh = qaSheet_(QA_CLAIMS), max = sh.getMaxRows();
-  const rng = sh.getRange(2, QC_.STATUS + 1, max - 1, 1);
-  const map = { 'Claimed': ['#DCEBFF', '#1F5FBF'], 'Done': ['#DDF3E6', '#1E7A4C'], 'Released': ['#ECEFF3', '#5D6B7B'],
-    'Auto-released': ['#FFF1D1', '#9A6300'] };
-  map[QA_TAKEN] = ['#FBE2E0', '#B3261E'];
-  sh.setConditionalFormatRules(Object.keys(map).map(t => SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(t)
-    .setBackground(map[t][0]).setFontColor(map[t][1]).setBold(true).setRanges([rng]).build()));
-}
-
-function ensureQaSheets_() { qaSheet_(QA_ACC); qaSheet_(QA_CLAIMS); qaSheet_(QA_POOL); }
-
-/** Menu: copies QA members (Role = QA) from ID Details into QA Accounts, using their password as PIN. */
-function qaImportAccounts() {
-  const ui = SpreadsheetApp.getUi();
-  const have = qaAccounts_(), mem = allMembers_();
-  const add = Object.keys(mem).filter(id => mem[id].role === 'QA' && !have[id])
-    .sort((a, b) => mem[a].row - mem[b].row)
-    .map(id => [id, mem[id].name, mem[id].pass, mem[id].active ? 'Yes' : 'No']);
-  if (!add.length) { ui.alert('All QA members from ID Details are already in QA Accounts.'); return; }
-  if (ui.alert('Import QA accounts', 'Add ' + add.length + ' QA member(s) from ID Details to QA Accounts?\nTheir current password will be their PIN. You can change PINs later.', ui.ButtonSet.YES_NO) !== ui.Button.YES) return;
-  const sh = qaSheet_(QA_ACC);
-  const start = sh.getLastRow() + 1;
-  const rg = sh.getRange(start, 1, add.length, QA_ACC.head.length);
-  rg.setNumberFormat('@');
-  rg.setValues(add);
-  ui.alert('Added ' + add.length + ' QA account(s).');
-}
-
-/** Menu: admin enters Task IDs that are not on the platform any more. They leave the QA Board as "Taken by other team". */
-function qaAdminMarkTaken() {
-  const ui = SpreadsheetApp.getUi();
-  const ask = ui.prompt('Mark tasks not on the platform',
-    'Paste the TR Task IDs (separated by comma, space or new line). They will be removed from the QA Board and counted as "' + QA_TAKEN + '".',
-    ui.ButtonSet.OK_CANCEL);
-  if (ask.getSelectedButton() !== ui.Button.OK) return;
-  const ids = String(ask.getResponseText()).split(/[\s,;]+/).map(clean_).filter(Boolean);
-  if (!ids.length) return;
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  const done = [], skipped = [];
-  try {
-    const c = qaClaimRows_();
-    qaAutoRelease_(c);
-    const src = {};
-    qaSource_().forEach(t => { src[t.taskId] = t; });
-    const now = new Date(), add = [];
-    ids.forEach(id => {
-      const t = src[id];
-      if (!t) { skipped.push(id + ' (not in the QA Board source)'); return; }
-      const busy = c.rows.find(x => qaMatches_(x.r, t) && ['Claimed', 'Done', QA_TAKEN].indexOf(x.r[QC_.STATUS]) >= 0);
-      if (busy) { skipped.push(id + ' (already ' + busy.r[QC_.STATUS] + (busy.r[QC_.STATUS] === 'Claimed' ? ' by ' + (busy.r[QC_.QANAME] || busy.r[QC_.QA]) : '') + ')'); return; }
-      add.push([t.taskId, t.trId, QA_TAKEN, 'ADMIN', 'Admin', now, now, 'Not on the platform (admin check)', t.logId, '', '', '']);
-      done.push(id);
-    });
-    if (add.length) {
-      const sh = c.sh, row = sh.getLastRow() + 1;
-      if (row + add.length > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), add.length + 50);
-      const rg = sh.getRange(row, 1, add.length, QA_CLAIMS.head.length);
-      rg.setNumberFormats(add.map(() => QA_CLAIMS.fmt));
-      rg.setValues(add);
+    if (action === 'start'){
+      if (db.log.some(r => r.memberId === id && r.status === 'In Progress')) return err('You already have a task in progress. Submit or delete it first.');
+      db.log.push({ logId:'L'+Date.now(), day, memberId:id, type:d.type, taskId:d.taskId, start:new Date().toISOString(), status:'In Progress' });
+      save(); return res(status(id));
     }
-  } finally { lock.releaseLock(); }
-  ui.alert('Done', 'Removed from the QA Board: ' + (done.join(', ') || 'none') + (skipped.length ? '\n\nSkipped:\n' + skipped.join('\n') : ''), ui.ButtonSet.OK);
+    const r = db.log.find(x => x.logId === d.logId);
+    if (action === 'finish'){ fill(r, d); r.end = new Date().toISOString(); save(); return res(status(id)); }
+    if (action === 'update'){ fill(r, d); save(); return res(status(id)); }
+    if (action === 'remove'){ db.log = db.log.filter(x => x.logId !== d.logId); save(); return res(status(id)); }
+    if (action === 'nodata'){
+      db.log.push({ logId:'L'+Date.now(), day, memberId:id, type:'No Data', start:new Date().toISOString(), end:new Date().toISOString(), status:'No Data', notes:d.notes, verified:false });
+      save(); return res(status(id));
+    }
+  }, 300));
 }
 
-/** Menu: tasks wrongly marked "Taken by other team" go back to the QA Board. */
-function qaAdminRestore() {
-  const ui = SpreadsheetApp.getUi();
-  const ask = ui.prompt('Put tasks back in the pool',
-    'Paste the TR Task IDs that were marked "' + QA_TAKEN + '" by mistake (comma, space or new line):', ui.ButtonSet.OK_CANCEL);
-  if (ask.getSelectedButton() !== ui.Button.OK) return;
-  const ids = String(ask.getResponseText()).split(/[\s,;]+/).map(clean_).filter(Boolean);
-  if (!ids.length) return;
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  const done = [], skipped = [];
-  try {
-    const c = qaClaimRows_(), now = new Date();
-    ids.forEach(id => {
-      const rows = c.rows.filter(x => clean_(x.r[QC_.TASK]) === id && x.r[QC_.STATUS] === QA_TAKEN);
-      if (!rows.length) { skipped.push(id + ' (not marked as ' + QA_TAKEN + ')'); return; }
-      rows.forEach(x => {
-        c.sh.getRange(x.rowNum, QC_.STATUS + 1).setValue('Released');
-        c.sh.getRange(x.rowNum, QC_.RELEASED + 1).setValue(now);
-        c.sh.getRange(x.rowNum, QC_.NOTE + 1).setValue(String(x.r[QC_.NOTE] || '') + ' · Put back in the pool by admin');
-      });
-      done.push(id);
-    });
-  } finally { lock.releaseLock(); }
-  ui.alert('Done', 'Back in the QA Board: ' + (done.join(', ') || 'none') + (skipped.length ? '\n\nSkipped:\n' + skipped.join('\n') : ''), ui.ButtonSet.OK);
-}
-
-/** Menu: release expired claims now. */
-function qaReleaseExpiredNow() {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  let n = 0;
-  try { n = qaAutoRelease_(qaClaimRows_()); } finally { lock.releaseLock(); }
-  SpreadsheetApp.getActive().toast(n + ' expired claim(s) released.', 'QA Board', 5);
-}
+if (DEMO) $('demoTag').classList.remove('hidden');
+load();
+</script>
+</body>
+</html>
